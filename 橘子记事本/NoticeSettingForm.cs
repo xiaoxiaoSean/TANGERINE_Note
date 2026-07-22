@@ -14,8 +14,8 @@ namespace 橘子记事本
     public partial class NoticeSettingForm : Form
     {
         int nid = -1;
-        public twdatav1 twr { get; private set; }
-        public NoticeSettingForm(twdatav1 twtw, int noticeId)
+        public twdata twr { get; private set; }
+        public NoticeSettingForm(twdata twtw, int noticeId)
         {
             InitializeComponent();
             twr = twtw;

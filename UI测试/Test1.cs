@@ -9,7 +9,7 @@ namespace UI测试
         public void NoticeForm_Create_Test()
         {
             ApplicationConfiguration.Initialize();
-            twdatav1 tw=new twdatav1();
+            twdata tw=new twdata();
             NoticeSettingForm form =
                 new NoticeSettingForm(ref tw,0);
 

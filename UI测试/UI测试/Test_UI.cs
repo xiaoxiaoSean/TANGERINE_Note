@@ -51,7 +51,7 @@ namespace UI测试
         {
             bool ok = RunInStaThread(() =>
             {
-                var tw = new twdatav1();
+                var tw = new twdata();
                 var nf = new NoticeSettingForm(ref tw, 0);
                 var ntype = nf.GetType();
                 var cb1 = ntype.GetField("checkBox1_1", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(nf) as CheckBox;
@@ -88,7 +88,7 @@ namespace UI测试
         {
             bool ok = RunInStaThread(() =>
             {
-                var tw = new twdatav1();
+                var tw = new twdata();
                 var nf = new NoticeSettingForm(ref tw, 0);
                 var ntype = nf.GetType();
                 var cb1 = ntype.GetField("checkBox1_1", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(nf) as CheckBox;

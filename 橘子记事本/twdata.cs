@@ -1,6 +1,6 @@
 ﻿namespace 橘子记事本
 {
-    public class twdatav1
+    public class twdata
     {
         public string version = "TANGERINE_TWRITER_CONFIG_V1.0_\\//\\/";
         public string[] titles { get; set; }

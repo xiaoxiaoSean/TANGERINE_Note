@@ -35,7 +35,7 @@ namespace 橘子记事本
         private int _notesAnimationTotal = 0;
         private int _notesAnimationCompleted = 0;
         private readonly object _notesAnimationLock = new object();
-        twdatav1 twtw = new twdatav1();
+        twdata twtw = new twdata();
         NoticeSettingForm noticeSettingForm;
         //公用对象声明结束--------------
         private async void Form1_Load(object sender, EventArgs e)//tw=tWrite
@@ -58,7 +58,7 @@ namespace 橘子记事本
                 {
                     try
                     {
-                        twtw = new twdatav1();
+                        twtw = new twdata();
                         twtw = preparetw(twtw);
                         File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
                         Application.Restart();
@@ -97,7 +97,7 @@ namespace 橘子记事本
             try
             {
 
-                twtw = JsonSerializer.Deserialize<twdatav1>(tws);
+                twtw = JsonSerializer.Deserialize<twdata>(tws);
             }
             catch (Exception ex)
             {
@@ -109,7 +109,7 @@ namespace 橘子记事本
                     case JsonException jsonEx:
                         if (MessageBox.Show("无法解析数据文件，要清空数据文件吗？\n点击是以清空(这将会永久清空数据，无法恢复)\n点击否以关闭程序", "橘子记事本发生了一个错误", MessageBoxButtons.YesNo) == DialogResult.Yes)
                         {
-                            twtw = new twdatav1();
+                            twtw = new twdata();
                             File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
                             Application.Restart();
                         }
@@ -178,7 +178,7 @@ namespace 橘子记事本
             }
             catch { }
         }
-        twdatav1 preparetw(twdatav1 twnull)
+        twdata preparetw(twdata twnull)
         {
             twnull.tasksNoticeMethod = new List<int>();
             twnull.taskNoticeType = new List<int>();
