@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
+  <Project Path="UI测试/UI测试.csproj" Id="eda1e74f-8cc1-4ad0-a281-f095322ded5b" />
+  <Project Path="橘子记事本/橘子记事本.csproj" />
+</Solution>
