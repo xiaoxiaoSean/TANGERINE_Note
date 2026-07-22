@@ -1,4 +1,15 @@
-﻿namespace 橘子记事本
+﻿using Microsoft.VisualBasic;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Security.Cryptography;
+using System.Text;
+using System.Windows.Forms;
+using HZH_Controls;
+using HZH_Controls.Controls;
+namespace 橘子记事本
 {
     public partial class NoticeSettingForm : Form
     {
@@ -43,7 +54,7 @@
                     hourNumeric.Visible = true;
                     minuteNumeric.Visible = true;
                     secNumeric.Visible = true;
-                }
+            }
             }
             else
             {
@@ -138,7 +149,7 @@
                 if (e.Button == MouseButtons.Left)
                 {
                     if (hourNumeric.Visible || minuteNumeric.Visible || secNumeric.Visible)
-                    {
+                {
                         hourNumeric.Visible = false;
                         minuteNumeric.Visible = false;
                         secNumeric.Visible = false;
@@ -152,8 +163,8 @@
                     {
                         if (twr.taskNoticeType[nid] == 1)
                         {
-                            dateTimePicker1.Visible = true;
-                            dateTimePicker1.Value = twr.tasksNoticeTime[nid];
+                        dateTimePicker1.Visible = true;
+                        dateTimePicker1.Value = twr.tasksNoticeTime[nid];
                             hourNumeric.Visible = false;
                             minuteNumeric.Visible = false;
                             secNumeric.Visible = false;
