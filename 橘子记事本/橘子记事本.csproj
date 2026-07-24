@@ -9,9 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="HZH_Controls" Version="1.5.240416" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2270" />
-    <PackageReference Include="ReaLTaiizor" Version="3.8.2.1" />
+    <PackageReference Include="SunnyUI" Version="3.9.8" />
     <PackageReference Include="System.Text.Json" Version="10.0.10" />
   </ItemGroup>
 

@@ -7,8 +7,6 @@ using System.Drawing;
 using System.Security.Cryptography;
 using System.Text;
 using System.Windows.Forms;
-using HZH_Controls;
-using HZH_Controls.Controls;
 namespace 橘子记事本
 {
     public partial class NoticeSettingForm : Form
@@ -59,7 +57,14 @@ namespace 橘子记事本
             else
             {
                 checkBox1_1.Checked = true;
+            }
+        }
 
+        private void checkBox2_1_CheckStateChanged(object sender, EventArgs e)
+        {
+            if (checkBox2_1.Checked)
+            {
+                checkBox2_2.Checked = false;
             }
         }
 
@@ -67,13 +72,8 @@ namespace 橘子记事本
         {
             if (checkBox2_2.Checked)
             {
-                checkBox2_2.Checked = false;
+                checkBox2_1.Checked = false;
             }
-        }
-
-        private void checkBox2_1_CheckStateChanged(object sender, EventArgs e)
-        {
-
         }
 
         private void label2_Click(object sender, EventArgs e)
@@ -85,18 +85,98 @@ namespace 橘子记事本
         {
 
         }
-        void saveFile(object sender, EventArgs e)
+
+        private void NoticeSettingForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (checkBox1_1.Checked)
+            // 如果提醒已启用，进行严格验证；否则允许随意设定
+            bool isEnabled = twr.isNoticeEnabled != null
+                && nid < twr.isNoticeEnabled.Count
+                && twr.isNoticeEnabled[nid];
+
+            if (isEnabled)
             {
-                twr.taskNoticeType[nid] = 1;
+                // === 已启用：严格验证 ===
+                if (checkBox1_1.Checked) // 绝对时间
+                {
+                    // 绝对时间不能早于当前时间
+                    if (dateTimePicker1.Value < DateTime.Now)
+                    {
+                        MessageBox.Show(
+                            "设置的提醒时间不能早于当前时间，请重新设置。",
+                            "时间设置错误",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                        e.Cancel = true;
+                        return;
+                    }
+                    twr.taskNoticeType[nid] = 1;
+                    twr.tasksNoticeTime[nid] = dateTimePicker1.Value;
+                }
+                else if (checkBox1_2.Checked) // 倒计时
+                {
+                    // 尝试构造 TimeSpan，捕获溢出异常
+                    TimeSpan ts;
+                    try
+                    {
+                        ts = new TimeSpan((int)hourNumeric.Value, (int)minuteNumeric.Value, (int)secNumeric.Value);
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        MessageBox.Show(
+                            "倒计时太长，请减小时间数值。",
+                            "倒计时设置错误",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                        e.Cancel = true;
+                        return;
+                    }
+
+                    // 倒计时不能为 0
+                    if (ts == TimeSpan.Zero)
+                    {
+                        MessageBox.Show(
+                            "倒计时不能为 0，请重新设置。",
+                            "倒计时设置错误",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Warning);
+                        e.Cancel = true;
+                        return;
+                    }
+
+                    twr.taskNoticeType[nid] = 2;
+                    twr.taskNoticeTime2[nid] = ts;
+                }
             }
-            if (checkBox1_2.Checked)
+            else
             {
-                twr.taskNoticeType[nid] = 2;
+                // === 未启用：允许随意设定，不验证 ===
+                if (checkBox1_1.Checked)
+                {
+                    twr.taskNoticeType[nid] = 1;
+                    twr.tasksNoticeTime[nid] = dateTimePicker1.Value;
+                }
+                else if (checkBox1_2.Checked)
+                {
+                    twr.taskNoticeType[nid] = 2;
+                    try
+                    {
+                        twr.taskNoticeTime2[nid] = new TimeSpan((int)hourNumeric.Value, (int)minuteNumeric.Value, (int)secNumeric.Value);
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        // 未启用时不阻止，但设置一个安全默认值
+                        twr.taskNoticeTime2[nid] = TimeSpan.FromMinutes(5);
+                    }
+                }
             }
-            twr.tasksNoticeTime[nid] = dateTimePicker1.Value;
+
+            // 保存提醒方式：1=Windows通知, 2=对话框
+            if (checkBox2_1.Checked)
+                twr.tasksNoticeMethod[nid] = 1;
+            else if (checkBox2_2.Checked)
+                twr.tasksNoticeMethod[nid] = 2;
         }
+
         private void NoticeSettingForm_Load(object sender, EventArgs e)
         {
             dateTimePicker1.Visible = false;
@@ -128,57 +208,73 @@ namespace 橘子记事本
                 }
             }
 
-            this.FormClosing += saveFile;
+            // 恢复提醒方式复选框状态
+            checkBox2_1.Checked = false;
+            checkBox2_2.Checked = false;
+            if (twr.tasksNoticeMethod != null && nid < twr.tasksNoticeMethod.Count)
+            {
+                switch (twr.tasksNoticeMethod[nid])
+                {
+                    case 1:
+                        checkBox2_1.Checked = true;
+                        break;
+                    case 2:
+                        checkBox2_2.Checked = true;
+                        break;
+                }
+            }
+
+            this.FormClosing += NoticeSettingForm_FormClosing;
         }
         private void label1_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Right && dateTimePicker1.Visible)
+            if (e.Button == MouseButtons.Right)
             {
-                twr.tasksNoticeTime[nid] = dateTimePicker1.Value;
+                // 右键：保存当前值并折叠时间选择器
+                if (dateTimePicker1.Visible)
+                {
+                    twr.tasksNoticeTime[nid] = dateTimePicker1.Value;
+                }
+                if (hourNumeric.Visible && minuteNumeric.Visible && secNumeric.Visible)
+                {
+                    twr.taskNoticeTime2[nid] = new TimeSpan((int)hourNumeric.Value, (int)minuteNumeric.Value, (int)secNumeric.Value);
+                }
+                dateTimePicker1.Visible = false;
                 hourNumeric.Visible = false;
                 minuteNumeric.Visible = false;
                 secNumeric.Visible = false;
-                dateTimePicker1.Visible = false;
             }
-            if (e.Button == MouseButtons.Right && hourNumeric.Visible && minuteNumeric.Visible && secNumeric.Visible)
+            else if (e.Button == MouseButtons.Left)
             {
-                twr.taskNoticeTime2[nid] = new TimeSpan((int)hourNumeric.Value, (int)minuteNumeric.Value, (int)secNumeric.Value);
-            }
-            else
-            {
-                if (e.Button == MouseButtons.Left)
+                // 左键：切换时间选择器的显示/隐藏
+                if (hourNumeric.Visible || minuteNumeric.Visible || secNumeric.Visible || dateTimePicker1.Visible)
                 {
-                    if (hourNumeric.Visible || minuteNumeric.Visible || secNumeric.Visible)
+                    // 当前可见 → 全部隐藏
+                    dateTimePicker1.Visible = false;
+                    hourNumeric.Visible = false;
+                    minuteNumeric.Visible = false;
+                    secNumeric.Visible = false;
+                }
+                else
                 {
+                    // 当前隐藏 → 根据提醒类型显示对应控件
+                    if (twr.taskNoticeType[nid] == 1)
+                    {
+                        dateTimePicker1.Visible = true;
+                        dateTimePicker1.Value = twr.tasksNoticeTime[nid];
                         hourNumeric.Visible = false;
                         minuteNumeric.Visible = false;
                         secNumeric.Visible = false;
-                        return;
                     }
-                    if (dateTimePicker1.Visible)
+                    else if (twr.taskNoticeType[nid] == 2)
                     {
                         dateTimePicker1.Visible = false;
-                    }
-                    else
-                    {
-                        if (twr.taskNoticeType[nid] == 1)
-                        {
-                        dateTimePicker1.Visible = true;
-                        dateTimePicker1.Value = twr.tasksNoticeTime[nid];
-                            hourNumeric.Visible = false;
-                            minuteNumeric.Visible = false;
-                            secNumeric.Visible = false;
-                        }
-                        else
-                        {
-                            dateTimePicker1.Visible = false;
-                            hourNumeric.Visible = true;
-                            minuteNumeric.Visible = true;
-                            secNumeric.Visible = true;
-                            hourNumeric.Value = twr.taskNoticeTime2[nid].Hours;
-                            minuteNumeric.Value = twr.taskNoticeTime2[nid].Minutes;
-                            secNumeric.Value = twr.taskNoticeTime2[nid].Seconds;
-                        }
+                        hourNumeric.Visible = true;
+                        minuteNumeric.Visible = true;
+                        secNumeric.Visible = true;
+                        hourNumeric.Value = twr.taskNoticeTime2[nid].Hours;
+                        minuteNumeric.Value = twr.taskNoticeTime2[nid].Minutes;
+                        secNumeric.Value = twr.taskNoticeTime2[nid].Seconds;
                     }
                 }
             }

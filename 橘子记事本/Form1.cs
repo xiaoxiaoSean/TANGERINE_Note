@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Media;
+using Sunny.UI;
 
 namespace 橘子记事本
 {
@@ -17,10 +19,198 @@ namespace 橘子记事本
             _sizeChangedTimer = new System.Windows.Forms.Timer();
             _sizeChangedTimer.Interval = 200;
             _sizeChangedTimer.Tick += SizeChangedTimer_Tick;
+            this.FormClosing += Form1_FormClosing;
+            SetupTrayIcon();
         }
         private System.Windows.Forms.Timer? _sizeChangedTimer;
+        private void Form1_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            if (!_isActuallyExiting)
+            {
+                // 关闭窗口 → 隐藏到系统托盘，保持程序运行
+                e.Cancel = true;
+                this.Hide();
+                return;
+            }
+
+            // 真正退出：停止并释放所有提醒计时器
+            if (timers.Count > 0)
+            {
+                foreach (var t in timers)
+                {
+                    try { t.Stop(); } catch { }
+                    try { t.Dispose(); } catch { }
+                }
+                timers.Clear();
+            }
+            timersId.Clear();
+			// 停止并释放尺寸防抖计时器
+			try { _sizeChangedTimer?.Stop(); } catch { }
+			try { _sizeChangedTimer?.Dispose(); } catch { }
+			// 停止重试计时器
+			try { _retryTimer?.Stop(); } catch { }
+			try { _retryTimer?.Dispose(); } catch { }
+            // 清理托盘图标
+            if (trayIcon != null)
+            {
+                try { trayIcon.Visible = false; } catch { }
+                try { trayIcon.Dispose(); } catch { }
+            }
+            if (trayMenu != null)
+            {
+                try { trayMenu.Dispose(); } catch { }
+            }
+        }
+
+        private void SetupTrayIcon()
+        {
+            trayMenu = new ContextMenuStrip();
+
+            var openItem = new ToolStripMenuItem("打开窗口");
+            openItem.Click += (s, e) =>
+            {
+                this.Show();
+                this.WindowState = FormWindowState.Normal;
+                this.Activate();
+            };
+            trayMenu.Items.Add(openItem);
+
+            var exitItem = new ToolStripMenuItem("退出");
+            exitItem.Click += (s, e) => ExitApplication();
+            trayMenu.Items.Add(exitItem);
+
+            trayIcon = new NotifyIcon();
+            trayIcon.Icon = this.Icon;
+            trayIcon.Text = "橘子记事本";
+            trayIcon.ContextMenuStrip = trayMenu;
+            trayIcon.DoubleClick += (s, e) =>
+            {
+                this.Show();
+                this.WindowState = FormWindowState.Normal;
+                this.Activate();
+            };
+            trayIcon.BalloonTipClicked += TrayIcon_BalloonTipClicked;
+            trayIcon.Visible = true;
+        }
+
+        private void ExitApplication()
+        {
+            var result = MessageBox.Show(
+                "确认退出吗，退出后，提醒将停止",
+                "退出确认对话框",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+            if (result == DialogResult.Yes)
+            {
+                _isActuallyExiting = true;
+                Application.Exit();
+            }
+        }
+
+        private void ShowWindowsNotification(string title, int noteIndex)
+        {
+            _pendingReminderIndex = noteIndex;
+
+            if (trayIcon != null)
+            {
+                trayIcon.BalloonTipTitle = "橘子记事本 - 提醒";
+                trayIcon.BalloonTipText = $"「{title}」\n该笔记的提醒时间已到！";
+                trayIcon.BalloonTipIcon = ToolTipIcon.Info;
+                trayIcon.ShowBalloonTip(8000);
+            }
+
+            // 启动重试计时器：每分钟重新弹一次通知，直到用户点击确认
+            _retryTimer?.Stop();
+            _retryTimer?.Dispose();
+            _retryTimer = new System.Windows.Forms.Timer();
+            _retryTimer.Interval = 60000; // 1 分钟
+            _retryTimer.Tick += RetryTimer_Tick;
+            _retryTimer.Start();
+        }
+
+        private void TrayIcon_BalloonTipClicked(object? sender, EventArgs e)
+        {
+            if (_pendingReminderIndex < 0) return;
+
+            // 停止重试计时器
+            _retryTimer?.Stop();
+            _retryTimer?.Dispose();
+            _retryTimer = null;
+
+            int idx = _pendingReminderIndex;
+            _pendingReminderIndex = -1;
+
+            // 禁用该提醒
+            if (idx < (twtw.isNoticeEnabled?.Count ?? 0))
+            {
+                twtw.isNoticeEnabled[idx] = false;
+            }
+
+            // 保存数据
+            try
+            {
+                File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+            }
+            catch { }
+
+            // 显示确认 Toast
+            UIMessageTip.ShowOk("确认提醒成功", 500);
+        }
+
+        private void RetryTimer_Tick(object? sender, EventArgs e)
+        {
+            _retryTimer?.Stop();
+            if (_pendingReminderIndex < 0) return;
+
+            int idx = _pendingReminderIndex;
+            string title = (idx < (twtw.titles?.Count ?? 0))
+                ? (twtw.titles[idx] ?? "提醒")
+                : "提醒";
+
+            // 重新显示通知
+            ShowWindowsNotification(title, idx);
+        }
+
+        private void ShowReminderDialog(string title)
+        {
+            try { System.Media.SystemSounds.Exclamation.Play(); } catch { }
+            MessageBox.Show(
+                $"「{title}」\n\n该笔记的提醒时间已到！",
+                "橘子记事本 - 提醒",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+
+        void triggerPastReminders(twdata twd)
+        {
+            if (twd.isNoticeEnabled == null || twd.taskNoticeType == null) return;
+
+            for (int i = 0; i < twd.isNoticeEnabled.Count; i++)
+            {
+                if (!twd.isNoticeEnabled[i]) continue;
+                if (i >= twd.taskNoticeType.Count || twd.taskNoticeType[i] != 1) continue;
+                if (twd.tasksNoticeTime == null || i >= twd.tasksNoticeTime.Count) continue;
+                if (twd.tasksNoticeTime[i] >= DateTime.Now) continue;
+
+                // 已过期的绝对时间提醒，立即触发
+                string title = (i < (twd.titles?.Count ?? 0)) ? (twd.titles[i] ?? "提醒") : "提醒";
+                int method = (twd.tasksNoticeMethod != null && i < twd.tasksNoticeMethod.Count)
+                    ? twd.tasksNoticeMethod[i] : 2;
+
+                if (method == 1)
+                {
+                    // Windows 通知：不立即禁用，等待用户点击确认
+                    ShowWindowsNotification(title, i);
+                }
+                else
+                {
+                    ShowReminderDialog(title);
+                    twd.isNoticeEnabled[i] = false;
+                }
+            }
+        }
         object tw = new object();
-        //声明公用对象...
+        //开始声明公用对象----------------//
         TabPage editPage = new TabPage("编辑中的笔记");
         EditPage EdPage = new EditPage();
         Label welcomeLabel = new Label();
@@ -31,13 +221,23 @@ namespace 橘子记事本
         int selectedTab = 0;
         Boolean isNoticeStarted = false;
         List<CheckBox> noticeCheckBoxes = new List<CheckBox>();
+        twdata twtw = new twdata();
+        NoticeSettingForm noticeSettingForm;
+        List<System.Windows.Forms.Timer> timers = new List<System.Windows.Forms.Timer>();
+        List<int> timersId=new List<int>();
+        private NotifyIcon? trayIcon;
+        private ContextMenuStrip? trayMenu;
+        private bool _isActuallyExiting = false;
+        // Windows 通知确认机制
+        private int _pendingReminderIndex = -1;
+        private System.Windows.Forms.Timer? _retryTimer;
+        //--------------------------------------------------------------//
         // 动画计数，用于在所有笔记动画结束后恢复滚动
         private int _notesAnimationTotal = 0;
         private int _notesAnimationCompleted = 0;
         private readonly object _notesAnimationLock = new object();
-        twdata twtw = new twdata();
-        NoticeSettingForm noticeSettingForm;
-        //公用对象声明结束--------------
+        //--------------------------------------------------------------//
+        //公用对象声明结束----------------//
         private async void Form1_Load(object sender, EventArgs e)//tw=tWrite
         {
             string tws = null;
@@ -67,8 +267,10 @@ namespace 橘子记事本
                     catch (Exception ex)
                     {
                         MessageBox.Show("程序即将关闭，发生了一个错误，在新建空文件时，发生了" + ex.ToString(), "橘子记事本发生了一个错误");
+                        _isActuallyExiting = true;
                         this.Close();
-                        Application.Exit();
+                        _isActuallyExiting = true;
+                    Application.Exit();
                     }
                 }
             }
@@ -115,13 +317,27 @@ namespace 橘子记事本
                         }
                         else
                         {
-
                             this.Close();
-                            Application.Exit();
+                            _isActuallyExiting = true;
+                    Application.Exit();
                         }
                         break;
                 }
             }
+            // 启动时检查数据文件完整性：所有 List 的 Count 必须一致
+            if (!CheckDataConsistency(twtw))
+            {
+                MessageBox.Show(
+                    "数据文件出错，程序即将关闭。",
+                    "橘子记事本 - 数据错误",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                _isActuallyExiting = true;
+                this.Close();
+                return;
+            }
+            refreshTimers(ref timers,twtw);
+            //Form1初始化已完成，开始关闭splash------------------------//
             // 确保启动时显示的 Splash 窗口被关闭，防止其消息循环持续运行
             try
             {
@@ -144,7 +360,6 @@ namespace 橘子记事本
                         try { splash.Close(); } catch { }
                     }
                 }
-
                 // 等待线程结束，避免后台继续循环
                 if (splashThread != null && splashThread.IsAlive)
                 {
@@ -175,11 +390,146 @@ namespace 橘子记事本
                 }
                 catch { }*/
                 try { this.BringToFront(); } catch { }
+
+                // 窗口显示 2 秒后再触发已过期的提醒
+                await Task.Delay(2000);
+                triggerPastReminders(twtw);
+                try
+                {
+                    File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+                }
+                catch { }
             }
             catch { }
         }
+        void refreshTimers(ref List<System.Windows.Forms.Timer> twtimers, twdata twd)
+        {
+            // 停止并释放所有现有计时器
+            if (twtimers.Count > 0)
+            {
+                foreach (System.Windows.Forms.Timer timert in twtimers)
+                {
+                    try { timert.Stop(); } catch { }
+                    try { timert.Dispose(); } catch { }
+                }
+            }
+            twtimers.Clear();
+            timersId.Clear();
+
+            if (twd.isNoticeEnabled == null || twd.taskNoticeType == null) return;
+
+            for (int i = 0; i < twd.isNoticeEnabled.Count; i++)
+            {
+                if (!twd.isNoticeEnabled[i]) continue;
+
+                int noticeType = i < twd.taskNoticeType.Count ? twd.taskNoticeType[i] : -1;
+                if (noticeType != 1 && noticeType != 2) continue;
+
+                double intervalMs = 0;
+
+                if (noticeType == 1) // 绝对时间
+                {
+                    if (twd.tasksNoticeTime == null || i >= twd.tasksNoticeTime.Count) continue;
+                    DateTime targetTime = twd.tasksNoticeTime[i];
+                    intervalMs = (targetTime - DateTime.Now).TotalMilliseconds;
+                }
+                else if (noticeType == 2) // 倒计时
+                {
+                    if (twd.taskNoticeTime2 == null || i >= twd.taskNoticeTime2.Count) continue;
+                    intervalMs = twd.taskNoticeTime2[i].TotalMilliseconds;
+                }
+
+                if (intervalMs <= 0) continue; // 时间已过或无效
+
+                System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
+                timer.Tag = i;
+                timer.Tick += ReminderTimer_Tick;
+
+                // 将间隔上限限制为 int.MaxValue（约 24.8 天）
+                timer.Interval = intervalMs > int.MaxValue ? int.MaxValue : Math.Max(1, (int)intervalMs);
+
+                twtimers.Add(timer);
+                timersId.Add(i);
+                timer.Start();
+            }
+        }
+        private void ReminderTimer_Tick(object? sender, EventArgs e)
+        {
+            if (sender is not System.Windows.Forms.Timer timer) return;
+            timer.Stop();
+
+            int noteIndex = (int)(timer.Tag ?? -1);
+            if (noteIndex < 0 || noteIndex >= (twtw.titles?.Count ?? 0)) return;
+
+            // 重新检查绝对时间提醒（处理因间隔上限而被截断的情况）
+            if (noteIndex < (twtw.taskNoticeType?.Count ?? 0) &&
+                twtw.taskNoticeType[noteIndex] == 1) // 绝对时间
+            {
+                if (noteIndex < (twtw.tasksNoticeTime?.Count ?? 0))
+                {
+                    double remainingMs = (twtw.tasksNoticeTime[noteIndex] - DateTime.Now).TotalMilliseconds;
+                    if (remainingMs > 1000) // 剩余超过 1 秒，重新调度
+                    {
+                        timer.Interval = remainingMs > int.MaxValue ? int.MaxValue : Math.Max(1, (int)remainingMs);
+                        timer.Start();
+                        return;
+                    }
+                }
+            }
+
+            // 触发提醒通知
+            string title = (noteIndex < (twtw.titles?.Count ?? 0))
+                ? (twtw.titles[noteIndex] ?? "提醒")
+                : "提醒";
+
+            int method = (twtw.tasksNoticeMethod != null && noteIndex < twtw.tasksNoticeMethod.Count)
+                ? twtw.tasksNoticeMethod[noteIndex] : 2;
+
+            if (method == 1)
+            {
+                // Windows 通知：不立即禁用，等待用户点击通知确认
+                ShowWindowsNotification(title, noteIndex);
+            }
+            else
+            {
+                // 对话框是模态的，用户关闭即视为已确认
+                ShowReminderDialog(title);
+                if (noteIndex < (twtw.isNoticeEnabled?.Count ?? 0))
+                {
+                    twtw.isNoticeEnabled[noteIndex] = false;
+                }
+            }
+
+            // 仅对话框类型在此处保存；Windows 通知类型在点击确认时保存
+            if (method != 1)
+            {
+                try
+                {
+                    File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+                }
+                catch { }
+            }
+
+            // 如果当前在提醒页面，刷新 UI
+            try
+            {
+                if (mainTab.SelectedTab == tNoticePage)
+                {
+                    this.BeginInvoke(new Action(() => refreshNotice()));
+                }
+            }
+            catch { }
+
+            // 从列表中移除并释放计时器
+            timers.Remove(timer);
+            try { timer.Dispose(); } catch { }
+        }
+
         twdata preparetw(twdata twnull)
         {
+            twnull.titles = new List<string>();
+            twnull.notes = new List<string>();
+            twnull.tasks = new List<string>();
             twnull.tasksNoticeMethod = new List<int>();
             twnull.taskNoticeType = new List<int>();
             twnull.taskNoticeCfg1 = new List<int>();
@@ -188,6 +538,32 @@ namespace 橘子记事本
             twnull.isNoticeEnabled = new List<Boolean>();
             twnull.taskNoticeTime2 = new List<TimeSpan>();
             return twnull;
+        }
+        /// <summary>
+        /// 检查数据文件中所有 List 的 Count 是否一致。
+        /// 不一致说明 JSON 数据损坏，返回 false。
+        /// </summary>
+        private bool CheckDataConsistency(twdata twd)
+        {
+            if (twd == null) return false;
+
+            int titleCount = twd.titles?.Count ?? 0;
+            int noteCount = twd.notes?.Count ?? 0;
+
+            // 基本校验：标题和正文数量必须一致
+            if (titleCount != noteCount) return false;
+
+            // 没有笔记则无需检查提醒列表
+            if (titleCount == 0) return true;
+
+            // 所有提醒相关 List 的 Count 必须与笔记数量一致
+            return (twd.tasksNoticeMethod?.Count ?? 0) == titleCount
+                && (twd.taskNoticeType?.Count ?? 0) == titleCount
+                && (twd.taskNoticeCfg1?.Count ?? 0) == titleCount
+                && (twd.taskNoticeCfg2?.Count ?? 0) == titleCount
+                && (twd.tasksNoticeTime?.Count ?? 0) == titleCount
+                && (twd.isNoticeEnabled?.Count ?? 0) == titleCount
+                && (twd.taskNoticeTime2?.Count ?? 0) == titleCount;
         }
         private void welcomeLabel_Click(object sender, EventArgs e)
         {
@@ -228,7 +604,6 @@ namespace 橘子记事本
                 targetFontSize -= 1f;
             }
         }
-
         private void Form1_SizeChanged(object sender, EventArgs e)
         {
             if (welcomeLabel == null) return;
@@ -344,8 +719,8 @@ namespace 橘子记事本
                     twtw.isNoticeEnabled.Add(false);
                     twtw.taskNoticeTime2.Add(new TimeSpan(0, 0, 0));
                 }
-                twtw.titles = titlesList.ToArray();
-                twtw.notes = notesList.ToArray();
+                twtw.titles = titlesList;
+                twtw.notes = notesList;
 
                 try
                 {
@@ -354,6 +729,7 @@ namespace 橘子记事本
                 catch (Exception ex)
                 {
                     MessageBox.Show("保存失败, 因此橘子记事本即将关闭\n因为：\n" + ex, "橘子记事本发生了一个错误");
+                    _isActuallyExiting = true;
                     Application.Exit();
                 }
                 // 关闭编辑页并回到笔记列表
@@ -434,13 +810,14 @@ namespace 橘子记事本
             CheckBox cbt = sender as CheckBox ?? new CheckBox { Checked = false };
             if (cbt.Checked)
             {
-                if (twtw.taskNoticeType[noticeId] != -1)
+                if (twtw.taskNoticeType[noticeId] != -1 && twtw.tasksNoticeMethod[noticeId] != -1)
                 {
                     twtw.isNoticeEnabled[noticeId] = true;
                 }
                 else
                 {
                     cbt.Checked = false;
+                    return;
                 }
             }
             else
@@ -455,6 +832,7 @@ namespace 橘子记事本
                 }
             }
             File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+            refreshTimers(ref timers, twtw);
         }
         private void noticeCheckBox_Click(object? sender, MouseEventArgs e, int noticeId)
         {
@@ -472,8 +850,11 @@ namespace 橘子记事本
                 {
                     MessageBox.Show("保存失败,程序即将关闭，因为\n" + ex.ToString(), "");
                     this.Close();
+                    _isActuallyExiting = true;
                     Application.Exit();
                 }
+                refreshTimers(ref timers, twtw);
+                refreshNotice();
             }
         }
         void refreshNotes()
@@ -482,8 +863,8 @@ namespace 橘子记事本
             tWritePage.Controls.Clear();
             // 在开始构建并启动动画之前，先禁用父容器自动滚动
             tWritePage.AutoScroll = false;
-            int titleCount = twtw?.titles?.Length ?? 0;
-            int noteCount = twtw?.notes?.Length ?? 0;
+            int titleCount = twtw?.titles?.Count ?? 0;
+            int noteCount = twtw?.notes?.Count ?? 0;
 
             if (titleCount == 0 && noteCount == 0)
                 return;
@@ -491,6 +872,7 @@ namespace 橘子记事本
             if (titleCount != noteCount)
             {
                 MessageBox.Show("笔记标题数和笔记正文数不相同，无法加载笔记\n你可以使用笔记修正工具来修复你的笔记\n,因此橘子记事本即将关闭");
+                _isActuallyExiting = true;
                 Application.Exit();
                 return;
             }
@@ -636,8 +1018,24 @@ namespace 橘子记事本
         }
         private void oprationBox2_Click(object sender, EventArgs e)
         {
-            twtw.titles = twtw.titles.Where((_, index) => index != selectedNoteId).ToArray();
-            twtw.notes = twtw.notes.Where((_, index) => index != selectedNoteId).ToArray();
+            if (selectedNoteId < 0) return;
+            twtw.titles = twtw.titles.Where((_, index) => index != selectedNoteId).ToList();
+            twtw.notes = twtw.notes.Where((_, index) => index != selectedNoteId).ToList();
+            // 同步清理提醒相关数据，保持索引一致
+            if (twtw.tasksNoticeMethod != null && selectedNoteId < twtw.tasksNoticeMethod.Count)
+                twtw.tasksNoticeMethod.RemoveAt(selectedNoteId);
+            if (twtw.taskNoticeType != null && selectedNoteId < twtw.taskNoticeType.Count)
+                twtw.taskNoticeType.RemoveAt(selectedNoteId);
+            if (twtw.taskNoticeCfg1 != null && selectedNoteId < twtw.taskNoticeCfg1.Count)
+                twtw.taskNoticeCfg1.RemoveAt(selectedNoteId);
+            if (twtw.taskNoticeCfg2 != null && selectedNoteId < twtw.taskNoticeCfg2.Count)
+                twtw.taskNoticeCfg2.RemoveAt(selectedNoteId);
+            if (twtw.tasksNoticeTime != null && selectedNoteId < twtw.tasksNoticeTime.Count)
+                twtw.tasksNoticeTime.RemoveAt(selectedNoteId);
+            if (twtw.isNoticeEnabled != null && selectedNoteId < twtw.isNoticeEnabled.Count)
+                twtw.isNoticeEnabled.RemoveAt(selectedNoteId);
+            if (twtw.taskNoticeTime2 != null && selectedNoteId < twtw.taskNoticeTime2.Count)
+                twtw.taskNoticeTime2.RemoveAt(selectedNoteId);
             try
             {
                 File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
@@ -645,9 +1043,12 @@ namespace 橘子记事本
             catch (Exception ex)
             {
                 MessageBox.Show("应用 删除 失败,因此橘子记事本即将关闭\n因为：\n" + ex, "橘子记事本发生了一个错误");
+                _isActuallyExiting = true;
                 Application.Exit();
             }
+            selectedNoteId = -1;
             refreshNotes();
+            refreshTimers(ref timers, twtw);
         }
 
         void noteSelected(tWriteNotes noteCard)

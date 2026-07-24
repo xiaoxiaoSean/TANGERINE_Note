@@ -84,7 +84,7 @@
             // 
             // HomePage
             // 
-            HomePage.BackColor = SystemColors.Control;
+            HomePage.BackColor = SystemColors.GradientActiveCaption;
             HomePage.Location = new Point(4, 33);
             HomePage.Name = "HomePage";
             HomePage.Padding = new Padding(3);

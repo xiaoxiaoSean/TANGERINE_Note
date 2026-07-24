@@ -176,7 +176,7 @@
             checkBox2_2.Name = "checkBox2_2";
             checkBox2_2.Size = new Size(570, 44);
             checkBox2_2.TabIndex = 1;
-            checkBox2_2.Text = "T提醒";
+            checkBox2_2.Text = "对话框";
             checkBox2_2.UseVisualStyleBackColor = true;
             checkBox2_2.CheckedChanged += checkBox2_2_CheckedChanged;
             // 

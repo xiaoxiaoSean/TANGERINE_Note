@@ -3,9 +3,9 @@
     public class twdata
     {
         public string version = "TANGERINE_TWRITER_CONFIG_V1.0_\\//\\/";
-        public string[] titles { get; set; }
-        public string[] notes { get; set; }
-        public string[] tasks { get; set; }
+        public List<string> titles { get; set; }
+        public List<string> notes { get; set; }
+        public List<string> tasks { get; set; }
         public List<Boolean> isNoticeEnabled { get; set; }
 
         public List<int> tasksNoticeMethod { get; set; }//提醒方式
