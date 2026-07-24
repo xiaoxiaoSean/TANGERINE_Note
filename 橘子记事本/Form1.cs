@@ -1,7 +1,11 @@
-using System.Text.Json;
-using System.Media;
 using Sunny.UI;
-
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text.Json;
+using CredentialManagement;
+//主要部分由Sean ren完成
+//部分由workbuddy(部分提醒),gemini(自适应文字),ChatGPT(splash窗口部分，加密功能)，Github Copilot(笔记卡片动画，splash窗口部分)完成
+//这些ai不仅完成了上述部分，还辅助了其他部分的开发
 namespace 橘子记事本
 {
     public partial class Form1 : Form
@@ -16,12 +20,69 @@ namespace 橘子记事本
             InitializeComponent();
             splashThread.Start();
             // 表单尺寸变化防抖：如果 200ms 内没有继续变化，则刷新笔记列表
-            _sizeChangedTimer = new System.Windows.Forms.Timer();
-            _sizeChangedTimer.Interval = 200;
+            _sizeChangedTimer = new System.Windows.Forms.Timer
+            {
+                Interval = 200
+            };
             _sizeChangedTimer.Tick += SizeChangedTimer_Tick;
-            this.FormClosing += Form1_FormClosing;
+            FormClosing += Form1_FormClosing;
             SetupTrayIcon();
         }
+        //两个实例不能同时运行-开始
+        public static class SingleInstance
+        {
+            public static readonly int WM_SHOWME =
+                NativeMethods.RegisterWindowMessage("TANGERINE_TWRITER_SHOW");
+        }
+        internal static class NativeMethods
+        {
+            [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+            public static extern int RegisterWindowMessage(string lpString);
+
+            [DllImport("user32.dll")]
+            public static extern bool PostMessage(
+                IntPtr hWnd,
+                int Msg,
+                IntPtr wParam,
+                IntPtr lParam);
+
+            [DllImport("user32.dll")]
+            public static extern bool ShowWindow(
+                IntPtr hWnd,
+                int nCmdShow);
+
+            [DllImport("user32.dll")]
+            public static extern bool SetForegroundWindow(
+                IntPtr hWnd);
+
+            public const int SW_RESTORE = 9;
+
+            public static readonly IntPtr HWND_BROADCAST =
+                new IntPtr(0xFFFF);
+        }
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == SingleInstance.WM_SHOWME)
+            {
+                if (WindowState == FormWindowState.Minimized)
+                {
+                    WindowState = FormWindowState.Normal;
+                }
+
+                Show();
+
+                BringToFront();
+
+                Activate();
+
+                NativeMethods.SetForegroundWindow(this.Handle);
+                return;
+            }
+
+            base.WndProc(ref m);
+        }
+        //两个实例不能同时运行-结束
+        //Credential cred = new Credential();
         private System.Windows.Forms.Timer? _sizeChangedTimer;
         private void Form1_FormClosing(object? sender, FormClosingEventArgs e)
         {
@@ -29,7 +90,7 @@ namespace 橘子记事本
             {
                 // 关闭窗口 → 隐藏到系统托盘，保持程序运行
                 e.Cancel = true;
-                this.Hide();
+                Hide();
                 return;
             }
 
@@ -44,12 +105,12 @@ namespace 橘子记事本
                 timers.Clear();
             }
             timersId.Clear();
-			// 停止并释放尺寸防抖计时器
-			try { _sizeChangedTimer?.Stop(); } catch { }
-			try { _sizeChangedTimer?.Dispose(); } catch { }
-			// 停止重试计时器
-			try { _retryTimer?.Stop(); } catch { }
-			try { _retryTimer?.Dispose(); } catch { }
+            // 停止并释放尺寸防抖计时器
+            try { _sizeChangedTimer?.Stop(); } catch { }
+            try { _sizeChangedTimer?.Dispose(); } catch { }
+            // 停止重试计时器
+            try { _retryTimer?.Stop(); } catch { }
+            try { _retryTimer?.Dispose(); } catch { }
             // 清理托盘图标
             if (trayIcon != null)
             {
@@ -69,9 +130,9 @@ namespace 橘子记事本
             var openItem = new ToolStripMenuItem("打开窗口");
             openItem.Click += (s, e) =>
             {
-                this.Show();
-                this.WindowState = FormWindowState.Normal;
-                this.Activate();
+                Show();
+                WindowState = FormWindowState.Normal;
+                Activate();
             };
             trayMenu.Items.Add(openItem);
 
@@ -79,15 +140,17 @@ namespace 橘子记事本
             exitItem.Click += (s, e) => ExitApplication();
             trayMenu.Items.Add(exitItem);
 
-            trayIcon = new NotifyIcon();
-            trayIcon.Icon = this.Icon;
-            trayIcon.Text = "橘子记事本";
-            trayIcon.ContextMenuStrip = trayMenu;
+            trayIcon = new NotifyIcon
+            {
+                Icon = Icon,
+                Text = "橘子记事本",
+                ContextMenuStrip = trayMenu
+            };
             trayIcon.DoubleClick += (s, e) =>
             {
-                this.Show();
-                this.WindowState = FormWindowState.Normal;
-                this.Activate();
+                Show();
+                WindowState = FormWindowState.Normal;
+                Activate();
             };
             trayIcon.BalloonTipClicked += TrayIcon_BalloonTipClicked;
             trayIcon.Visible = true;
@@ -100,7 +163,7 @@ namespace 橘子记事本
                 "退出确认对话框",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
-            if (result == DialogResult.Yes)
+            if (result == System.Windows.Forms.DialogResult.Yes)
             {
                 _isActuallyExiting = true;
                 Application.Exit();
@@ -122,8 +185,10 @@ namespace 橘子记事本
             // 启动重试计时器：每分钟重新弹一次通知，直到用户点击确认
             _retryTimer?.Stop();
             _retryTimer?.Dispose();
-            _retryTimer = new System.Windows.Forms.Timer();
-            _retryTimer.Interval = 60000; // 1 分钟
+            _retryTimer = new System.Windows.Forms.Timer
+            {
+                Interval = 60000 // 1 分钟
+            };
             _retryTimer.Tick += RetryTimer_Tick;
             _retryTimer.Start();
         }
@@ -149,14 +214,65 @@ namespace 橘子记事本
             // 保存数据
             try
             {
-                File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+                WriteBack();
             }
             catch { }
 
             // 显示确认 Toast
             UIMessageTip.ShowOk("确认提醒成功", 500);
         }
+        void WriteBack()
+        {
+            // 对象转JSON
+            string json = JsonSerializer.Serialize(twtw);
 
+
+            // AES加密
+            byte[] encrypted = CryptoHelper.Encrypt(
+                json,
+                pwd
+            );
+
+
+            // 保存
+            File.WriteAllBytes(
+                Path.Combine(Application.StartupPath, "tw.tw"),
+                encrypted
+            );
+        }
+        private void DecryptFile()
+        {
+            try
+            {
+                string path = Path.Combine(
+                    Application.StartupPath,
+                    "tw.tw");
+
+                // 读取加密文件
+                byte[] encrypted = File.ReadAllBytes(path);
+
+                // 解密得到 JSON
+                tws = CryptoHelper.Decrypt(
+                    encrypted,
+                    pwd);
+
+                // JSON -> 对象
+                twtw = JsonSerializer.Deserialize<twdata>(tws);
+
+                if (twtw == null)
+                {
+                    throw new Exception("数据为空");
+                }
+            }
+            catch (CryptographicException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
         private void RetryTimer_Tick(object? sender, EventArgs e)
         {
             _retryTimer?.Stop();
@@ -211,20 +327,22 @@ namespace 橘子记事本
         }
         object tw = new object();
         //开始声明公用对象----------------//
+        string tws = "";
+        string pwd = "";
         TabPage editPage = new TabPage("编辑中的笔记");
         EditPage EdPage = new EditPage();
         Label welcomeLabel = new Label();
-        Boolean isEditing = false;
+        bool isEditing = false;
         tWriteNotes[] notesToShow = Array.Empty<tWriteNotes>();
-        Boolean isSelected = false;
+        bool isSelected = false;
         int selectedNoteId = -1;
         int selectedTab = 0;
-        Boolean isNoticeStarted = false;
-        List<CheckBox> noticeCheckBoxes = new List<CheckBox>();
+        bool isNoticeStarted = false;
+        List<CheckBox> noticeCheckBoxes = [];
         twdata twtw = new twdata();
         NoticeSettingForm noticeSettingForm;
-        List<System.Windows.Forms.Timer> timers = new List<System.Windows.Forms.Timer>();
-        List<int> timersId=new List<int>();
+        List<System.Windows.Forms.Timer> timers = [];
+        List<int> timersId = [];
         private NotifyIcon? trayIcon;
         private ContextMenuStrip? trayMenu;
         private bool _isActuallyExiting = false;
@@ -238,16 +356,67 @@ namespace 橘子记事本
         private readonly object _notesAnimationLock = new object();
         //--------------------------------------------------------------//
         //公用对象声明结束----------------//
+        //Form1开始加载-------------------------------------------------//
         private async void Form1_Load(object sender, EventArgs e)//tw=tWrite
         {
-            string tws = null;
             try
             {
                 if (File.Exists(Path.Combine(Application.StartupPath, "tw.tw")))
                 {
                     try
                     {
-                        tws = File.ReadAllText(Path.Combine(Application.StartupPath, "tw.tw"));
+                    incpwd:
+                        try
+                        {
+                            /*cred.Target = "TANGERINE_TWRITER";
+
+                            if (cred.Load())
+                            {
+                                string pwd = cred.Password;
+                            }
+                            else
+                            {
+                                MessageBox.Show("没有保存密码");
+                            }
+                            try
+                            {
+                                DecryptFile();
+                            }
+                            catch (CryptographicException)
+                            {
+                         /*   incpwd2:
+                                try
+                                {
+                                    UIInputDialog.ShowInputPasswordDialog(ref pwd, UIStyle.DarkBlue, false, "Windows 凭据管理器存储的密码不对，输入正确的密码，然后重新存储", true, 6);
+                                    DecryptFile();
+                                }
+                                catch (CryptographicException)
+                                {
+                                    MessageBox.Show("密码错误");
+                                    goto incpwd2;
+                                }
+                                cred.Target = "TANGERINE_TWRITER";
+                                cred.Delete();
+                                cred.Password = pwd;
+                                cred.Save();*/
+                            //}*/
+                            try
+                            {
+                                pwd = "";
+                                DecryptFile();
+                            }
+                            catch (CryptographicException)
+                            {
+
+                            }
+                            UIInputDialog.ShowInputPasswordDialog(ref pwd, UIStyle.DarkBlue, false, "输入解密密码以解密,只能英文，数字", true, 6);
+                            DecryptFile();
+                        }
+                        catch (CryptographicException)
+                        {
+                            MessageBox.Show("密码错误");
+                            goto incpwd;
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -258,26 +427,49 @@ namespace 橘子记事本
                 {
                     try
                     {
+                        //开始新建空文件
                         twtw = new twdata();
                         twtw = preparetw(twtw);
-                        File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
-                        Application.Restart();
-                        tws = File.ReadAllText(Path.Combine(Application.StartupPath, "tw.tw"));
+                        string json = JsonSerializer.Serialize(twtw);
+                        pwd = "";
+                    pwdna:
+                        UIInputDialog.ShowInputPasswordDialog(ref pwd, UIStyle.DarkBlue, false, "欢迎，输入加密密码，不想输入密码可留空,只能英文，数字", true, 6);
+                        if (!IsAsciiLetterOrNumber(pwd))
+                        {
+                            MessageBox.Show("只能英文，数字\n请重试", "橘子记事本");
+                            pwd = "";
+                            goto pwdna;
+                        }
+                        WriteBack();
+                        /*cred.Target = "TANGERINE_TWRITER";
+                        cred.Username = "User";
+                        cred.Password = pwd;
+                        cred.Type = CredentialType.Generic;
+                        cred.PersistanceType = PersistanceType.LocalComputer;
+                        try
+                        {
+                            cred.Save();
+                        }
+                        catch (Exception)
+                        {
+                            MessageBox.Show("密码保存到 Windows 凭据管理器 失败");
+                        }*/
+                        //新建空文件结束
                     }
                     catch (Exception ex)
                     {
                         MessageBox.Show("程序即将关闭，发生了一个错误，在新建空文件时，发生了" + ex.ToString(), "橘子记事本发生了一个错误");
                         _isActuallyExiting = true;
-                        this.Close();
+                        Close();
                         _isActuallyExiting = true;
-                    Application.Exit();
+                        Application.Exit();
                     }
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show("程序即将关闭，发生了错误" + ex.ToString(), "橘子记事本发生了一个错误");
-                this.Close();
+                Close();
                 Application.Exit();
             }
             int welcomeLabelWidth = HomePage.ClientSize.Width / 2;
@@ -296,47 +488,19 @@ namespace 橘子记事本
             //对label1进行自适应字体大小
             AutoScaleLabelFontTrue(label1);
             welcomeLabel.Click += welcomeLabel_Click;
-            try
-            {
-
-                twtw = JsonSerializer.Deserialize<twdata>(tws);
-            }
-            catch (Exception ex)
-            {
-                switch (ex)
-                {
-                    default:
-                        MessageBox.Show("程序即将关闭，发生了一个错误，在读取tw.tw文件时，发生了错误" + ex.ToString(), "橘子记事本发生了一个错误");
-                        break;
-                    case JsonException jsonEx:
-                        if (MessageBox.Show("无法解析数据文件，要清空数据文件吗？\n点击是以清空(这将会永久清空数据，无法恢复)\n点击否以关闭程序", "橘子记事本发生了一个错误", MessageBoxButtons.YesNo) == DialogResult.Yes)
-                        {
-                            twtw = new twdata();
-                            File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
-                            Application.Restart();
-                        }
-                        else
-                        {
-                            this.Close();
-                            _isActuallyExiting = true;
-                    Application.Exit();
-                        }
-                        break;
-                }
-            }
             // 启动时检查数据文件完整性：所有 List 的 Count 必须一致
             if (!CheckDataConsistency(twtw))
             {
                 MessageBox.Show(
-                    "数据文件出错，程序即将关闭。",
+                    "数据文件出错，因为List的Count不一致，程序即将关闭。",
                     "橘子记事本 - 数据错误",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
                 _isActuallyExiting = true;
-                this.Close();
+                Close();
                 return;
             }
-            refreshTimers(ref timers,twtw);
+            refreshTimers(ref timers, twtw);
             //Form1初始化已完成，开始关闭splash------------------------//
             // 确保启动时显示的 Splash 窗口被关闭，防止其消息循环持续运行
             try
@@ -375,12 +539,12 @@ namespace 橘子记事本
             // 确保主窗口不是最小化状态（splash 关闭后可能导致 Form1 被最小化）
             try
             {
-                if (this.WindowState == FormWindowState.Minimized)
+                if (WindowState == FormWindowState.Minimized)
                 {
-                    this.WindowState = FormWindowState.Normal;
+                    WindowState = FormWindowState.Normal;
                 }
-                try { this.Show(); } catch { }
-                try { this.Activate(); } catch { }
+                try { Show(); } catch { }
+                try { Activate(); } catch { }
                 /*try
                 {
                     // 通过短暂设置 TopMost 来确保窗口置顶一次，然后恢复原状态
@@ -389,14 +553,14 @@ namespace 橘子记事本
                     this.TopMost = originalTopMost;
                 }
                 catch { }*/
-                try { this.BringToFront(); } catch { }
+                try { BringToFront(); } catch { }
 
                 // 窗口显示 2 秒后再触发已过期的提醒
                 await Task.Delay(2000);
                 triggerPastReminders(twtw);
                 try
                 {
-                    File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+                    WriteBack();
                 }
                 catch { }
             }
@@ -441,8 +605,10 @@ namespace 橘子记事本
 
                 if (intervalMs <= 0) continue; // 时间已过或无效
 
-                System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
-                timer.Tag = i;
+                System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer
+                {
+                    Tag = i
+                };
                 timer.Tick += ReminderTimer_Tick;
 
                 // 将间隔上限限制为 int.MaxValue（约 24.8 天）
@@ -505,7 +671,7 @@ namespace 橘子记事本
             {
                 try
                 {
-                    File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+                    WriteBack();
                 }
                 catch { }
             }
@@ -515,7 +681,7 @@ namespace 橘子记事本
             {
                 if (mainTab.SelectedTab == tNoticePage)
                 {
-                    this.BeginInvoke(new Action(() => refreshNotice()));
+                    BeginInvoke(new Action(() => refreshNotice()));
                 }
             }
             catch { }
@@ -524,19 +690,32 @@ namespace 橘子记事本
             timers.Remove(timer);
             try { timer.Dispose(); } catch { }
         }
+        bool IsAsciiLetterOrNumber(string str)
+        {
+            foreach (char c in str)
+            {
+                if (!((c >= 'a' && c <= 'z') ||
+                      (c >= 'A' && c <= 'Z') ||
+                      (c >= '0' && c <= '9')))
+                {
+                    return false;
+                }
+            }
 
+            return true;
+        }
         twdata preparetw(twdata twnull)
         {
-            twnull.titles = new List<string>();
-            twnull.notes = new List<string>();
-            twnull.tasks = new List<string>();
-            twnull.tasksNoticeMethod = new List<int>();
-            twnull.taskNoticeType = new List<int>();
-            twnull.taskNoticeCfg1 = new List<int>();
-            twnull.taskNoticeCfg2 = new List<int>();
-            twnull.tasksNoticeTime = new List<DateTime>();
-            twnull.isNoticeEnabled = new List<Boolean>();
-            twnull.taskNoticeTime2 = new List<TimeSpan>();
+            twnull.titles = [];
+            twnull.notes = [];
+            twnull.tasks = [];
+            twnull.tasksNoticeMethod = [];
+            twnull.taskNoticeType = [];
+            twnull.taskNoticeCfg1 = [];
+            twnull.taskNoticeCfg2 = [];
+            twnull.tasksNoticeTime = [];
+            twnull.isNoticeEnabled = [];
+            twnull.taskNoticeTime2 = [];
             return twnull;
         }
         /// <summary>
@@ -597,6 +776,7 @@ namespace 橘子记事本
                         label.Font = testFont;
                         // 如果旧字体不是系统默认字体，顺手释放防内存泄漏
                         //if (oldFont != null && oldFont != SystemFonts.DefaultFont) oldFont.Dispose();
+                        //ChatGPT辅助修复了这个问题，上行代码会导致Form1拉起的其他窗口的部分控件无法正常加载
                         return;
                     }
                 }
@@ -637,7 +817,6 @@ namespace 橘子记事本
             }
             catch { }
         }
-
         private void SizeChangedTimer_Tick(object? sender, EventArgs e)
         {
             try
@@ -673,7 +852,6 @@ namespace 橘子记事本
                 oprationBox1.Image = Properties.Resources.CreateNotes_icon;
             }
         }
-
         private void oprationBox2_MouseEnter(object sender, EventArgs e)
         {
             oprationBox2.Image = Properties.Resources.DeleteNotes_text;
@@ -683,7 +861,6 @@ namespace 橘子记事本
         {
             oprationBox2.Image = Properties.Resources.DeleteNotes_icon;
         }
-
         private void oprationBox1_Click(object sender, EventArgs e)
         {
             if (isEditing)
@@ -695,8 +872,8 @@ namespace 橘子记事本
                     MessageBox.Show("抱歉，此笔记不能保存，请删除关键词TANGERINR_TWRITER_和\\/\\/\n要了解更多信息，请咨询TANGERINE LAB");
                     return;
                 }
-                List<string> notesList = new List<string>();
-                List<string> titlesList = new List<string>();
+                List<string> notesList = [];
+                List<string> titlesList = [];
                 if (twtw.titles != null) titlesList = twtw.titles.ToList();
                 if (twtw.notes != null) notesList = twtw.notes.ToList();
 
@@ -724,7 +901,7 @@ namespace 橘子记事本
 
                 try
                 {
-                    File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+                    WriteBack();
                 }
                 catch (Exception ex)
                 {
@@ -791,14 +968,7 @@ namespace 橘子记事本
                     noticeCheckBoxes.Add(cb);
 
                     checkBoxY += tNoticePage.Height / 10;
-                    if (twtw.isNoticeEnabled[i])
-                    {
-                        cb.Checked = true;
-                    }
-                    else
-                    {
-                        cb.Checked = false;
-                    }
+                    cb.Checked = twtw.isNoticeEnabled[i];
                 }
             }
             tNoticePage.Controls.Clear();
@@ -831,7 +1001,7 @@ namespace 橘子记事本
                     return;
                 }
             }
-            File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+            WriteBack();
             refreshTimers(ref timers, twtw);
         }
         private void noticeCheckBox_Click(object? sender, MouseEventArgs e, int noticeId)
@@ -844,12 +1014,12 @@ namespace 橘子记事本
                 noticeSettingForm.Dispose();
                 try
                 {
-                    File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+                    WriteBack();
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show("保存失败,程序即将关闭，因为\n" + ex.ToString(), "");
-                    this.Close();
+                    Close();
                     _isActuallyExiting = true;
                     Application.Exit();
                 }
@@ -887,14 +1057,16 @@ namespace 橘子记事本
             notesToShow = new tWriteNotes[notesCount];
             for (int i = 0; i < notesToShow.Length; i++)
             {
-                notesToShow[i] = new tWriteNotes();
-                notesToShow[i].Width = tWritePage.Width / 2;
-                notesToShow[i].Height = tWritePage.Height / 3;
-                notesToShow[i].NoteId = i;
+                notesToShow[i] = new tWriteNotes
+                {
+                    Width = tWritePage.Width / 2,
+                    Height = tWritePage.Height / 3,
+                    NoteId = i
+                };
                 notesToShow[i].Click += note_Click;
                 notesToShow[i].DoubleClick += note_doubleClick;
             }
-            Boolean isFirstNote = true;
+            bool isFirstNote = true;
             int nowNoteY = 0;
             foreach (var note in notesToShow)
             {
@@ -1038,7 +1210,7 @@ namespace 橘子记事本
                 twtw.taskNoticeTime2.RemoveAt(selectedNoteId);
             try
             {
-                File.WriteAllText(Path.Combine(Application.StartupPath, "tw.tw"), JsonSerializer.Serialize(twtw));
+                WriteBack();
             }
             catch (Exception ex)
             {

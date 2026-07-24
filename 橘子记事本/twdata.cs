@@ -2,7 +2,7 @@
 {
     public class twdata
     {
-        public string version = "TANGERINE_TWRITER_CONFIG_V1.0_\\//\\/";
+        public string version { get; private set; } = "TANGERINE_TWRITER_CONFIG_V1.0_\\//\\/";
         public List<string> titles { get; set; }
         public List<string> notes { get; set; }
         public List<string> tasks { get; set; }

@@ -94,7 +94,7 @@
             label2.Name = "label2";
             label2.Size = new Size(393, 601);
             label2.TabIndex = 3;
-            label2.Text = "感谢你测试：\r\n橘子记事本\r\nTEST版本-内部\r\n0.1.x\r\n";
+            label2.Text = "感谢你测试：\r\n橘子记事本\r\nTEST版本-内部\r\n0.2t\r\n\r\n\r\n\r\n";
             label2.UseWaitCursor = true;
             // 
             // progressBar1
@@ -118,6 +118,7 @@
             label3.Size = new Size(661, 105);
             label3.TabIndex = 5;
             label3.Text = "欢迎使用橘子记事本^_^";
+            label3.UseWaitCursor = true;
             // 
             // SplashForm
             // 

@@ -1,13 +1,4 @@
-﻿using Microsoft.VisualBasic;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Security.Cryptography;
-using System.Text;
-using System.Windows.Forms;
-namespace 橘子记事本
+﻿namespace 橘子记事本
 {
     public partial class NoticeSettingForm : Form
     {
@@ -52,7 +43,7 @@ namespace 橘子记事本
                     hourNumeric.Visible = true;
                     minuteNumeric.Visible = true;
                     secNumeric.Visible = true;
-            }
+                }
             }
             else
             {
@@ -224,7 +215,7 @@ namespace 橘子记事本
                 }
             }
 
-            this.FormClosing += NoticeSettingForm_FormClosing;
+            FormClosing += NoticeSettingForm_FormClosing;
         }
         private void label1_MouseClick(object sender, MouseEventArgs e)
         {

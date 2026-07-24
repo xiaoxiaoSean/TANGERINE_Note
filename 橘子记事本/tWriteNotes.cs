@@ -6,17 +6,13 @@ namespace 橘子记事本
 {
     public partial class tWriteNotes : Control
     {
-        private int _radius = 12;
-        private string _title = string.Empty;
-        private string _noteText = string.Empty;
+
         // 唯一标识，可由外部设置与读取
-        private int _noteId = 0;
 
         // 动画相关
         private Timer? _animationTimer;
         private Point _targetLocation;
         private int _initialOffsetY;
-        private double _animationProgress = 1.0;
         private DateTime _animationStartTime;
         private const int AnimationDurationMs = 1000;
         // 不在控件内部修改父容器的 AutoScroll，交由父窗口统一管理
@@ -31,7 +27,7 @@ namespace 橘子记事本
         private float _cachedTitleSize = 0f;
         private Font? _cachedNoteFont = null;
         private Font? _cachedTitleFont = null;
-        private List<string> _cachedLines = new List<string>();
+        private List<string> _cachedLines = [];
         private int _cachedTitleHeight = 0;
         private int _cachedLineHeight = 0;
         private int _cachedAvailWidth = 0;
@@ -45,7 +41,7 @@ namespace 橘子记事本
         // 自动播放控制
         private bool _autoStarted = false;
 
-        public double AnimationProgress => _animationProgress;
+        public double AnimationProgress { get; private set; } = 1.0;
         // 动画完成事件，外部可订阅
         public event EventHandler? AnimationCompleted;
 
@@ -55,35 +51,35 @@ namespace 橘子记事本
             try { InitializeComponent(); } catch { }
 
             SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.SupportsTransparentBackColor, true);
-            this.Size = new Size(260, 100);
-            this.BackColor = Color.FromArgb(255, 253, 240);
-            this.ForeColor = Color.FromArgb(40, 40, 40);
-            this.Font = new Font("微软雅黑", 12f, FontStyle.Regular);
-            this.ParentChanged += TWriteNotes_ParentChanged;
+            Size = new Size(260, 100);
+            BackColor = Color.FromArgb(255, 253, 240);
+            ForeColor = Color.FromArgb(40, 40, 40);
+            Font = new Font("微软雅黑", 12f, FontStyle.Regular);
+            ParentChanged += TWriteNotes_ParentChanged;
         }
         public void toSelectedColor()
         {
-            this.BackColor = Color.FromArgb(255, 240, 200);
-            this.ForeColor = Color.FromArgb(20, 20, 20);
+            BackColor = Color.FromArgb(255, 240, 200);
+            ForeColor = Color.FromArgb(20, 20, 20);
         }
         public void toNormalColor()
         {
-            this.BackColor = Color.FromArgb(255, 253, 240);
-            this.ForeColor = Color.FromArgb(40, 40, 40);
+            BackColor = Color.FromArgb(255, 253, 240);
+            ForeColor = Color.FromArgb(40, 40, 40);
         }
         private void TWriteNotes_ParentChanged(object? sender, EventArgs e)
         {
             // 当被添加到父容器时，尝试在父容器布局完成后自动启动动画
             if (_autoStarted) return;
-            var p = this.Parent as Control;
+            var p = Parent as Control;
             if (p == null) return;
 
             // 如果父容器已经创建句柄并可见，直接开始动画
-            if (p.IsHandleCreated && p.Visible && this.Visible && !DesignMode)
+            if (p.IsHandleCreated && p.Visible && Visible && !DesignMode)
             {
                 _autoStarted = true;
                 // ensure IntendedLocation set
-                if (IntendedLocation == Point.Empty) IntendedLocation = this.Location;
+                if (IntendedLocation == Point.Empty) IntendedLocation = Location;
                 try { tAnimationParallel(); } catch { }
                 return;
             }
@@ -95,7 +91,7 @@ namespace 橘子记事本
                 {
                     if (_autoStarted) return;
                     _autoStarted = true;
-                    if (IntendedLocation == Point.Empty) IntendedLocation = this.Location;
+                    if (IntendedLocation == Point.Empty) IntendedLocation = Location;
                     try { tAnimationParallel(); } catch { }
                 }
                 finally
@@ -125,7 +121,7 @@ namespace 橘子记事本
             CancellationToken ct = _parallelCts.Token;
 
             // 记录目标位置并准备起始位置
-            Point target = IntendedLocation != Point.Empty ? IntendedLocation : this.Location;
+            Point target = IntendedLocation != Point.Empty ? IntendedLocation : Location;
             int initialOffset = (int)Math.Round((double)Screen.PrimaryScreen.Bounds.Height / 12);
 
             // 父容器的滚动由外部（Form1）统一管理，控件内部不修改父容器状态
@@ -133,13 +129,13 @@ namespace 橘子记事本
             // 设置起始视觉位置（在 UI 线程）
             try
             {
-                if (this.IsHandleCreated)
+                if (IsHandleCreated)
                 {
-                    this.BeginInvoke((Action)(() =>
+                    BeginInvoke((Action)(() =>
                     {
-                        try { _lastVisualBounds = this.Bounds; } catch { _lastVisualBounds = new Rectangle(this.Location, this.Size); }
-                        this.Location = new Point(target.X, target.Y + initialOffset);
-                        this._animationProgress = 0.0;
+                        try { _lastVisualBounds = Bounds; } catch { _lastVisualBounds = new Rectangle(Location, Size); }
+                        Location = new Point(target.X, target.Y + initialOffset);
+                        AnimationProgress = 0.0;
                     }));
                 }
             }
@@ -162,28 +158,28 @@ namespace 橘子记事本
                         Point currentTarget = IntendedLocation != Point.Empty ? IntendedLocation : target;
 
                         // 将位置更新回 UI 线程
-                        if (this.IsHandleCreated)
+                        if (IsHandleCreated)
                         {
                             try
                             {
-                                this.BeginInvoke((Action)(() =>
+                                BeginInvoke((Action)(() =>
                                 {
                                     try
                                     {
-                                        this.Location = new Point(currentTarget.X, currentTarget.Y + currentOffset);
-                                        this._animationProgress = progress;
+                                        Location = new Point(currentTarget.X, currentTarget.Y + currentOffset);
+                                        AnimationProgress = progress;
                                         // 部分重绘
-                                        var p = this.Parent as Control;
+                                        var p = Parent as Control;
                                         if (p != null)
                                         {
-                                            try { p.Invalidate(Rectangle.Union(_lastVisualBounds, this.Bounds), true); }
+                                            try { p.Invalidate(Rectangle.Union(_lastVisualBounds, Bounds), true); }
                                             catch { p.Invalidate(); }
                                         }
                                         else
                                         {
-                                            try { this.Invalidate(); } catch { }
+                                            try { Invalidate(); } catch { }
                                         }
-                                        try { _lastVisualBounds = this.Bounds; } catch { }
+                                        try { _lastVisualBounds = Bounds; } catch { }
                                     }
                                     catch { }
                                 }));
@@ -209,14 +205,14 @@ namespace 橘子记事本
                 finally
                 {
                     // 结束时恢复到精确目标并恢复父容器滚动
-                    if (this.IsHandleCreated)
+                    if (IsHandleCreated)
                     {
                         try
                         {
-                            this.BeginInvoke((Action)(() =>
+                            BeginInvoke((Action)(() =>
                             {
-                                try { this.Location = IntendedLocation != Point.Empty ? IntendedLocation : target; } catch { }
-                                this._animationProgress = 1.0;
+                                try { Location = IntendedLocation != Point.Empty ? IntendedLocation : target; } catch { }
+                                AnimationProgress = 1.0;
                             }));
                         }
                         catch { }
@@ -229,9 +225,9 @@ namespace 橘子记事本
                     // 触发动画完成事件（在 UI 线程）
                     try
                     {
-                        if (this.IsHandleCreated)
+                        if (IsHandleCreated)
                         {
-                            this.BeginInvoke((Action)(() => AnimationCompleted?.Invoke(this, EventArgs.Empty)));
+                            BeginInvoke((Action)(() => AnimationCompleted?.Invoke(this, EventArgs.Empty)));
                         }
                         else
                         {
@@ -246,38 +242,22 @@ namespace 橘子记事本
         [Category("外观")]
         [Browsable(true)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public int Radius
-        {
-            get => _radius;
-            set { _radius = Math.Max(0, value); Invalidate(); }
-        }
+        public int Radius { get; set { field = Math.Max(0, value); Invalidate(); } } = 12;
 
         [Category("内容")]
         [Browsable(true)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public string Title
-        {
-            get => _title;
-            set { _title = value ?? string.Empty; _layoutValid = false; Invalidate(); }
-        }
+        public string Title { get; set { field = value ?? string.Empty; _layoutValid = false; Invalidate(); } } = string.Empty;
 
         [Category("内容")]
         [Browsable(true)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public string NoteText
-        {
-            get => _noteText;
-            set { _noteText = value ?? string.Empty; _layoutValid = false; Invalidate(); }
-        }
+        public string NoteText { get; set { field = value ?? string.Empty; _layoutValid = false; Invalidate(); } } = string.Empty;
 
         [Category("内容")]
         [Browsable(true)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public int NoteId
-        {
-            get => _noteId;
-            set { _noteId = value; }
-        }
+        public int NoteId { get; set; } = 0;
 
         protected override void OnSizeChanged(EventArgs e)
         {
@@ -291,9 +271,9 @@ namespace 橘子记事本
         {
             if (DesignMode) return;
 
-            if (!this.IsHandleCreated)
+            if (!IsHandleCreated)
             {
-                try { this.CreateControl(); } catch { }
+                try { CreateControl(); } catch { }
             }
 
             if (_animationTimer != null)
@@ -301,21 +281,23 @@ namespace 橘子记事本
                 try { _animationTimer.Stop(); _animationTimer.Dispose(); } catch { }
                 _animationTimer = null;
             }
-            _targetLocation = this.Location;
+            _targetLocation = Location;
             _initialOffsetY = (int)Math.Round((double)Screen.PrimaryScreen.Bounds.Height / 12);
 
             // 父容器的滚动由外部（Form1.refreshNotes）统一管理，此处不修改父容器状态
 
             // 将显示位置设置为目标下方偏移（视觉上）并记录初始可见区域
-            this.Location = new Point(_targetLocation.X, _targetLocation.Y + _initialOffsetY);
-            _animationProgress = 0.0;
+            Location = new Point(_targetLocation.X, _targetLocation.Y + _initialOffsetY);
+            AnimationProgress = 0.0;
             // 记录当前可见区域，用于高效部分重绘
-            try { _lastVisualBounds = this.Bounds; } catch { _lastVisualBounds = new Rectangle(this.Location, this.Size); }
+            try { _lastVisualBounds = Bounds; } catch { _lastVisualBounds = new Rectangle(Location, Size); }
             _animationStartTime = DateTime.Now;
 
-            _animationTimer = new Timer();
-            // 恢复为 60 FPS 更新以保证动画平滑
-            _animationTimer.Interval = 16;
+            _animationTimer = new Timer
+            {
+                // 恢复为 60 FPS 更新以保证动画平滑
+                Interval = 16
+            };
             _animationTimer.Tick += AnimationTimer_Tick;
             _animationTimer.Start();
 
@@ -326,14 +308,14 @@ namespace 橘子记事本
         {
             base.OnHandleCreated(e);
             // 记录目标位置，但不要在此修改 Location（避免在未启动动画时产生固定空隙）
-            _targetLocation = this.Location;
+            _targetLocation = Location;
             _initialOffsetY = (int)Math.Round((double)Screen.PrimaryScreen.Bounds.Height / 12);
-            _animationProgress = 1.0;
+            AnimationProgress = 1.0;
             // 如果尚未自动启动且处于可见状态，尝试自动启动一次
-            if (!_autoStarted && this.Parent != null && this.Visible && !DesignMode)
+            if (!_autoStarted && Parent != null && Visible && !DesignMode)
             {
                 _autoStarted = true;
-                if (IntendedLocation == Point.Empty) IntendedLocation = this.Location;
+                if (IntendedLocation == Point.Empty) IntendedLocation = Location;
                 try { tAnimationParallel(); } catch { }
             }
         }
@@ -343,7 +325,7 @@ namespace 橘子记事本
             if (_animationTimer == null) return;
             double elapsedMs = (DateTime.Now - _animationStartTime).TotalMilliseconds;
 
-            var parent = this.Parent;
+            var parent = Parent;
             if (elapsedMs >= AnimationDurationMs)
             {
                 _animationTimer.Stop();
@@ -351,9 +333,9 @@ namespace 橘子记事本
                 _animationTimer = null;
 
                 Rectangle oldBounds = _lastVisualBounds;
-                this.Location = _targetLocation;
-                _animationProgress = 1.0;
-                Rectangle newBounds = this.Bounds;
+                Location = _targetLocation;
+                AnimationProgress = 1.0;
+                Rectangle newBounds = Bounds;
 
                 // 父容器滚动交由 Form1 管理，这里不再修改父容器状态
 
@@ -373,9 +355,9 @@ namespace 橘子记事本
                 // 对非并行计时器路径，也触发动画完成事件
                 try
                 {
-                    if (this.IsHandleCreated)
+                    if (IsHandleCreated)
                     {
-                        this.BeginInvoke((Action)(() => AnimationCompleted?.Invoke(this, EventArgs.Empty)));
+                        BeginInvoke((Action)(() => AnimationCompleted?.Invoke(this, EventArgs.Empty)));
                     }
                     else
                     {
@@ -391,9 +373,9 @@ namespace 橘子记事本
                 int currentOffsetY = (int)(_initialOffsetY * (1.0 - easeIn));
 
                 Rectangle oldBounds = _lastVisualBounds;
-                this.Location = new Point(_targetLocation.X, _targetLocation.Y + currentOffsetY);
-                _animationProgress = linearProgress;
-                Rectangle newBounds = this.Bounds;
+                Location = new Point(_targetLocation.X, _targetLocation.Y + currentOffsetY);
+                AnimationProgress = linearProgress;
+                Rectangle newBounds = Bounds;
 
                 if (parent != null)
                 {
@@ -415,12 +397,12 @@ namespace 橘子记事本
             Graphics g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            int alpha = Math.Clamp((int)(_animationProgress * 255), 0, 255);
-            Color back = Color.FromArgb(alpha, this.BackColor);
-            Color fore = Color.FromArgb(alpha, this.ForeColor);
+            int alpha = Math.Clamp((int)(AnimationProgress * 255), 0, 255);
+            Color back = Color.FromArgb(alpha, BackColor);
+            Color fore = Color.FromArgb(alpha, ForeColor);
 
-            Rectangle rect = new Rectangle(0, 0, this.Width - 1, this.Height - 1);
-            int dia = Math.Min(_radius * 2, Math.Min(rect.Width, rect.Height));
+            Rectangle rect = new Rectangle(0, 0, Width - 1, Height - 1);
+            int dia = Math.Min(Radius * 2, Math.Min(rect.Width, rect.Height));
 
             using (GraphicsPath path = new GraphicsPath())
             {
@@ -438,9 +420,9 @@ namespace 橘子记事本
                 using (Pen p = new Pen(fore, 1.5f)) g.DrawPath(p, path);
             }
             // 绘制自适应字号的标题（单行，超出以三个英文句号 "..." 截断）和正文（最多 3 行，超出在第三行尾部加 "..."）
-            int padding = Math.Max(8, _radius);
-            int availWidth = Math.Max(1, this.ClientSize.Width - padding * 2);
-            int availHeight = Math.Max(1, this.ClientSize.Height - padding * 2);
+            int padding = Math.Max(8, Radius);
+            int availWidth = Math.Max(1, ClientSize.Width - (padding * 2));
+            int availHeight = Math.Max(1, ClientSize.Height - (padding * 2));
 
             // 辅助：测量文本像素宽度
             int MeasureTextWidth(string text, Font f)
@@ -464,14 +446,13 @@ namespace 橘子记事本
                     if (MeasureTextWidth(cand, f) <= maxWidth) lo = mid;
                     else hi = mid - 1;
                 }
-                if (lo <= 0) return dots;
-                return text.Substring(0, lo) + dots;
+                return lo <= 0 ? dots : text.Substring(0, lo) + dots;
             }
 
             // 辅助：按像素宽度换行，返回最多 maxLines 行，超出则在最后一行添加 "..."
             List<string> WrapTextToLines(string text, Font f, int maxWidth, int maxLines)
             {
-                List<string> lines = new List<string>();
+                List<string> lines = [];
                 if (string.IsNullOrEmpty(text)) return lines;
                 int idx = 0, len = text.Length;
                 while (idx < len && lines.Count < maxLines)
@@ -504,11 +485,11 @@ namespace 橘子记事本
             }
 
             // 使用缓存以避免每次重绘都进行昂贵测量
-            if (!_layoutValid || _cachedAvailWidth != availWidth || _cachedBodyHeight != (availHeight))
+            if (!_layoutValid || _cachedAvailWidth != availWidth || _cachedBodyHeight != availHeight)
             {
                 // 清理旧字体
-                try { if (_cachedNoteFont != null && _cachedNoteFont != this.Font) _cachedNoteFont.Dispose(); } catch { }
-                try { if (_cachedTitleFont != null && _cachedTitleFont != this.Font) _cachedTitleFont.Dispose(); } catch { }
+                try { if (_cachedNoteFont != null && _cachedNoteFont != Font) _cachedNoteFont.Dispose(); } catch { }
+                try { if (_cachedTitleFont != null && _cachedTitleFont != Font) _cachedTitleFont.Dispose(); } catch { }
                 _cachedLines.Clear();
 
                 // 重新计算字号和换行
@@ -518,13 +499,13 @@ namespace 橘子记事本
                 float chosenTitle = 16f;
                 for (float s = 120f; s >= 8f; s -= 1f)
                 {
-                    using (Font testNote = new Font(this.Font.FontFamily, s, this.Font.Style))
-                    using (Font testTitle = new Font(this.Font.FontFamily, Math.Min(s * 2f, 120f), FontStyle.Bold))
+                    using (Font testNote = new Font(Font.FontFamily, s, Font.Style))
+                    using (Font testTitle = new Font(Font.FontFamily, Math.Min(s * 2f, 120f), FontStyle.Bold))
                     {
-                        int titleW = MeasureTextWidth(_title ?? string.Empty, testTitle);
+                        int titleW = MeasureTextWidth(Title ?? string.Empty, testTitle);
                         if (titleW > availWidth) continue;
 
-                        Size noteMeasured = TextRenderer.MeasureText(_noteText ?? string.Empty, testNote, new Size(availWidth, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl | TextFormatFlags.NoPadding);
+                        Size noteMeasured = TextRenderer.MeasureText(NoteText ?? string.Empty, testNote, new Size(availWidth, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl | TextFormatFlags.NoPadding);
                         double approxLines = Math.Ceiling((double)noteMeasured.Height / testNote.Height);
                         if (approxLines <= 3 && noteMeasured.Height <= availHeight - testTitle.Height + 1)
                         {
@@ -537,12 +518,12 @@ namespace 橘子记事本
 
                 _cachedNoteSize = chosenNote;
                 _cachedTitleSize = chosenTitle;
-                try { _cachedNoteFont = new Font(this.Font.FontFamily, _cachedNoteSize, this.Font.Style); } catch { _cachedNoteFont = this.Font; }
-                try { _cachedTitleFont = new Font(this.Font.FontFamily, _cachedTitleSize, FontStyle.Bold); } catch { _cachedTitleFont = this.Font; }
+                try { _cachedNoteFont = new Font(Font.FontFamily, _cachedNoteSize, Font.Style); } catch { _cachedNoteFont = Font; }
+                try { _cachedTitleFont = new Font(Font.FontFamily, _cachedTitleSize, FontStyle.Bold); } catch { _cachedTitleFont = Font; }
 
                 // 准备换行结果
-                _cachedLines = WrapTextToLines(_noteText ?? string.Empty, _cachedNoteFont, availWidth, 3);
-                _cachedTitleHeight = TextRenderer.MeasureText(TrimToWidthWithThreeDots(_title ?? string.Empty, _cachedTitleFont, availWidth), _cachedTitleFont, new Size(availWidth, int.MaxValue), TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix).Height;
+                _cachedLines = WrapTextToLines(NoteText ?? string.Empty, _cachedNoteFont, availWidth, 3);
+                _cachedTitleHeight = TextRenderer.MeasureText(TrimToWidthWithThreeDots(Title ?? string.Empty, _cachedTitleFont, availWidth), _cachedTitleFont, new Size(availWidth, int.MaxValue), TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix).Height;
 
                 _cachedLineHeight = TextRenderer.MeasureText("A", _cachedNoteFont, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix).Height;
 
@@ -550,7 +531,7 @@ namespace 橘子记事本
             }
 
             // 绘制标题
-            string titleToDrawCached = TrimToWidthWithThreeDots(_title ?? string.Empty, _cachedTitleFont, _cachedAvailWidth);
+            string titleToDrawCached = TrimToWidthWithThreeDots(Title ?? string.Empty, _cachedTitleFont, _cachedAvailWidth);
             Rectangle titleRectCached = new Rectangle(padding, padding, _cachedAvailWidth, _cachedTitleHeight);
             TextRenderer.DrawText(g, titleToDrawCached, _cachedTitleFont, titleRectCached, fore, TextFormatFlags.SingleLine | TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPadding);
 
@@ -559,7 +540,7 @@ namespace 橘子记事本
             int linesToRenderCached = Math.Min(_cachedLines.Count, Math.Min(3, Math.Max(0, _cachedBodyHeight / Math.Max(1, _cachedLineHeight))));
             for (int i = 0; i < linesToRenderCached; i++)
             {
-                Rectangle lineRect = new Rectangle(padding, bodyYcached + i * _cachedLineHeight, _cachedAvailWidth, _cachedLineHeight);
+                Rectangle lineRect = new Rectangle(padding, bodyYcached + (i * _cachedLineHeight), _cachedAvailWidth, _cachedLineHeight);
                 TextRenderer.DrawText(g, _cachedLines[i], _cachedNoteFont, lineRect, fore, TextFormatFlags.SingleLine | TextFormatFlags.Left | TextFormatFlags.Top | TextFormatFlags.NoPadding);
             }
         }
