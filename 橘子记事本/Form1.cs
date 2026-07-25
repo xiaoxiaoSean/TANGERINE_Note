@@ -207,11 +207,8 @@ namespace 橘子记事本
             _pendingReminderIndex = -1;
 
             // 禁用该提醒
-            if (idx < (twtw.isNoticeEnabled?.Count ?? 0))
-            {
                 twtw.isNoticeEnabled[idx] = false;
-            }
-
+            refreshNotice();
             // 保存数据
             try
             {
@@ -220,7 +217,8 @@ namespace 橘子记事本
             catch { }
 
             // 显示确认 Toast
-            UIMessageTip.ShowOk("确认提醒成功", 500);
+            UIMessageTip.ShowOk("确认提醒成功", 1000);
+
         }
         void WriteBack()
         {
@@ -350,6 +348,8 @@ namespace 橘子记事本
         // Windows 通知确认机制
         private int _pendingReminderIndex = -1;
         private System.Windows.Forms.Timer? _retryTimer;
+        // 防止 refreshNotice 程序化设置 Checked 时触发 noticeCb_CheckedChanged
+        private bool _isRefreshingNotice = false;
         //--------------------------------------------------------------//
         // 动画计数，用于在所有笔记动画结束后恢复滚动
         private int _notesAnimationTotal = 0;
@@ -936,52 +936,61 @@ namespace 橘子记事本
         }
         void refreshNotice()
         {
-            noticeCheckBoxes.Clear();
-            int checkBoxY = 0;
-            int i = -1;
-            if (twtw.titles != null || twtw.notes != null)
+            _isRefreshingNotice = true;
+            try
             {
-                i++;
-                foreach (string title in twtw.titles)
+                noticeCheckBoxes.Clear();
+                int checkBoxY = 0;
+                if (twtw.titles != null || twtw.notes != null)
                 {
-                    int noticeId = noticeCheckBoxes.Count;
-
-                    string twtitle = title;
-
-                    if (twtitle.Length > 10)
+                    foreach (string title in twtw.titles)
                     {
-                        twtitle = title.Substring(0, 10) + "...";
+                        int noticeId = noticeCheckBoxes.Count;
+
+                        string twtitle = title;
+
+                        if (twtitle.Length > 10)
+                        {
+                            twtitle = title.Substring(0, 10) + "...";
+                        }
+
+                        CheckBox cb = new CheckBox()
+                        {
+                            Text = twtitle,
+                            AutoSize = false,
+                            Width = tNoticePage.Width,
+                            Height = tNoticePage.Height / 10,
+                            Location = new Point(0, checkBoxY)
+                        };
+
+                        cb.MouseDown += (sender, e) =>
+                        {
+                            noticeCheckBox_Click(sender, e, noticeId);
+                        };
+                        cb.CheckStateChanged += (sender, e) =>
+                        {
+                            noticeCb_CheckedChanged(sender, e, noticeId);
+                        };
+                        noticeCheckBoxes.Add(cb);
+
+                        checkBoxY += tNoticePage.Height / 10;
+                        cb.Checked = twtw.isNoticeEnabled[noticeId];
                     }
-
-                    CheckBox cb = new CheckBox()
-                    {
-                        Text = twtitle,
-                        AutoSize = false,
-                        Width = tNoticePage.Width,
-                        Height = tNoticePage.Height / 10,
-                        Location = new Point(0, checkBoxY)
-                    };
-
-                    cb.MouseDown += (sender, e) =>
-                    {
-                        noticeCheckBox_Click(sender, e, noticeId);
-                    };
-                    cb.CheckStateChanged += (sender, e) =>
-                    {
-                        noticeCb_CheckedChanged(sender, e, noticeId);
-                    };
-                    noticeCheckBoxes.Add(cb);
-
-                    checkBoxY += tNoticePage.Height / 10;
-                    cb.Checked = twtw.isNoticeEnabled[i];
                 }
+                tNoticePage.Controls.Clear();
+                tNoticePage.Controls.AddRange(noticeCheckBoxes.ToArray());
+                tNoticePage.Refresh();
             }
-            tNoticePage.Controls.Clear();
-            tNoticePage.Controls.AddRange(noticeCheckBoxes.ToArray());
-            tNoticePage.Refresh();
+            finally
+            {
+                _isRefreshingNotice = false;
+            }
         }
         private void noticeCb_CheckedChanged(object sender, EventArgs e, int noticeId)
         {
+            // 程序化刷新 UI 期间不处理事件，避免级联修改数据并重启计时器
+            if (_isRefreshingNotice) return;
+
             CheckBox cbt = sender as CheckBox ?? new CheckBox { Checked = false };
             if (cbt.Checked)
             {
