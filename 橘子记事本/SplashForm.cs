@@ -11,6 +11,7 @@
         {
             progressBar1.Style = ProgressBarStyle.Marquee;
             progressBar1.MarqueeAnimationSpeed = 1;
+               
         }
     }
 }

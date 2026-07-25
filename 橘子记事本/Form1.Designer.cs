@@ -34,6 +34,15 @@
             HomePage = new TabPage();
             tWritePage = new TabPage();
             tNoticePage = new TabPage();
+            settingPage = new TabPage();
+            tableLayoutPanel1 = new TableLayoutPanel();
+            tableLayoutPanel2 = new TableLayoutPanel();
+            pwdNPBox = new Sunny.UI.UITextBox();
+            welcomePWD = new Label();
+            scrollingPwdText1 = new Sunny.UI.UIScrollingText();
+            pwdOPBox = new Sunny.UI.UITextBox();
+            changePwdButton = new Button();
+            uiListBox1 = new Sunny.UI.UIListBox();
             topPanel = new TableLayoutPanel();
             logoBox = new PictureBox();
             label1 = new Label();
@@ -44,6 +53,9 @@
             oprationBox3 = new PictureBox();
             mainPanel.SuspendLayout();
             mainTab.SuspendLayout();
+            settingPage.SuspendLayout();
+            tableLayoutPanel1.SuspendLayout();
+            tableLayoutPanel2.SuspendLayout();
             topPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)logoBox).BeginInit();
             operationPanel.SuspendLayout();
@@ -74,6 +86,7 @@
             mainTab.Controls.Add(HomePage);
             mainTab.Controls.Add(tWritePage);
             mainTab.Controls.Add(tNoticePage);
+            mainTab.Controls.Add(settingPage);
             mainTab.Dock = DockStyle.Fill;
             mainTab.Location = new Point(3, 160);
             mainTab.Name = "mainTab";
@@ -112,6 +125,141 @@
             tNoticePage.TabIndex = 2;
             tNoticePage.Text = "提醒";
             tNoticePage.UseVisualStyleBackColor = true;
+            // 
+            // settingPage
+            // 
+            settingPage.Controls.Add(tableLayoutPanel1);
+            settingPage.Location = new Point(4, 33);
+            settingPage.Name = "settingPage";
+            settingPage.Padding = new Padding(3);
+            settingPage.Size = new Size(1364, 588);
+            settingPage.TabIndex = 3;
+            settingPage.Text = "设置";
+            settingPage.UseVisualStyleBackColor = true;
+            // 
+            // tableLayoutPanel1
+            // 
+            tableLayoutPanel1.ColumnCount = 2;
+            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 13.1811485F));
+            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 86.81885F));
+            tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 1, 0);
+            tableLayoutPanel1.Controls.Add(uiListBox1, 0, 0);
+            tableLayoutPanel1.Dock = DockStyle.Fill;
+            tableLayoutPanel1.Location = new Point(3, 3);
+            tableLayoutPanel1.Name = "tableLayoutPanel1";
+            tableLayoutPanel1.RowCount = 1;
+            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel1.Size = new Size(1358, 582);
+            tableLayoutPanel1.TabIndex = 1;
+            // 
+            // tableLayoutPanel2
+            // 
+            tableLayoutPanel2.ColumnCount = 2;
+            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 71.8670044F));
+            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28.1329918F));
+            tableLayoutPanel2.Controls.Add(pwdNPBox, 0, 2);
+            tableLayoutPanel2.Controls.Add(welcomePWD, 0, 0);
+            tableLayoutPanel2.Controls.Add(scrollingPwdText1, 1, 0);
+            tableLayoutPanel2.Controls.Add(pwdOPBox, 0, 1);
+            tableLayoutPanel2.Controls.Add(changePwdButton, 0, 3);
+            tableLayoutPanel2.Dock = DockStyle.Fill;
+            tableLayoutPanel2.Location = new Point(182, 3);
+            tableLayoutPanel2.Name = "tableLayoutPanel2";
+            tableLayoutPanel2.RowCount = 5;
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 45.9459457F));
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 54.0540543F));
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 136F));
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 122F));
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 95F));
+            tableLayoutPanel2.Size = new Size(1173, 576);
+            tableLayoutPanel2.TabIndex = 1;
+            // 
+            // pwdNPBox
+            // 
+            pwdNPBox.Dock = DockStyle.Fill;
+            pwdNPBox.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            pwdNPBox.Location = new Point(4, 227);
+            pwdNPBox.Margin = new Padding(4, 5, 4, 5);
+            pwdNPBox.MaxLength = 50;
+            pwdNPBox.MinimumSize = new Size(1, 16);
+            pwdNPBox.Name = "pwdNPBox";
+            pwdNPBox.Padding = new Padding(5);
+            pwdNPBox.ShowText = false;
+            pwdNPBox.Size = new Size(835, 126);
+            pwdNPBox.TabIndex = 3;
+            pwdNPBox.TextAlignment = ContentAlignment.MiddleLeft;
+            pwdNPBox.Watermark = "输入新密码(若要不设密码，就留空，只能写英文字母和数字，最多50位)";
+            // 
+            // welcomePWD
+            // 
+            welcomePWD.AutoSize = true;
+            welcomePWD.Font = new Font("Microsoft YaHei UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            welcomePWD.Location = new Point(3, 0);
+            welcomePWD.Name = "welcomePWD";
+            welcomePWD.Size = new Size(398, 102);
+            welcomePWD.TabIndex = 0;
+            welcomePWD.Text = "欢迎来到加密设置界面\r\n重要保密数据请用你信任的软件存储\r\n若要更改加密密码，请在下方操作\r\n\r\n";
+            // 
+            // scrollingPwdText1
+            // 
+            scrollingPwdText1.Active = true;
+            scrollingPwdText1.Dock = DockStyle.Fill;
+            scrollingPwdText1.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            scrollingPwdText1.Interval = 100;
+            scrollingPwdText1.Location = new Point(846, 3);
+            scrollingPwdText1.MinimumSize = new Size(1, 1);
+            scrollingPwdText1.Name = "scrollingPwdText1";
+            scrollingPwdText1.Radius = 90;
+            scrollingPwdText1.Size = new Size(324, 96);
+            scrollingPwdText1.TabIndex = 1;
+            scrollingPwdText1.Text = "免责声明：数据如果泄露，与橘子记事本及其开发者和贡献者无关。  数据安全不可忽视，请用你信任的软件存储你的保密数据，数据如果泄露，与橘子记事本及其开发者和贡献者无关";
+            // 
+            // pwdOPBox
+            // 
+            pwdOPBox.Dock = DockStyle.Fill;
+            pwdOPBox.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            pwdOPBox.Location = new Point(4, 107);
+            pwdOPBox.Margin = new Padding(4, 5, 4, 5);
+            pwdOPBox.MaxLength = 50;
+            pwdOPBox.MinimumSize = new Size(1, 16);
+            pwdOPBox.Name = "pwdOPBox";
+            pwdOPBox.Padding = new Padding(5);
+            pwdOPBox.ShowText = false;
+            pwdOPBox.Size = new Size(835, 110);
+            pwdOPBox.TabIndex = 2;
+            pwdOPBox.TextAlignment = ContentAlignment.MiddleLeft;
+            pwdOPBox.Watermark = "输入旧密码(没设密码就留空)";
+            // 
+            // changePwdButton
+            // 
+            changePwdButton.Dock = DockStyle.Fill;
+            changePwdButton.Location = new Point(3, 361);
+            changePwdButton.Name = "changePwdButton";
+            changePwdButton.Size = new Size(837, 116);
+            changePwdButton.TabIndex = 4;
+            changePwdButton.Text = "确认更改密码";
+            changePwdButton.UseVisualStyleBackColor = true;
+            changePwdButton.Click += changePwdButton_Click;
+            // 
+            // uiListBox1
+            // 
+            uiListBox1.Dock = DockStyle.Fill;
+            uiListBox1.FillColor = Color.White;
+            uiListBox1.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            uiListBox1.HoverColor = Color.FromArgb(155, 200, 255);
+            uiListBox1.Items.AddRange(new object[] { "加密设置" });
+            uiListBox1.ItemSelectForeColor = Color.White;
+            uiListBox1.Location = new Point(4, 5);
+            uiListBox1.Margin = new Padding(4, 5, 4, 5);
+            uiListBox1.MinimumSize = new Size(1, 1);
+            uiListBox1.Name = "uiListBox1";
+            uiListBox1.Padding = new Padding(25);
+            uiListBox1.Radius = 50;
+            uiListBox1.ShowText = false;
+            uiListBox1.Size = new Size(171, 572);
+            uiListBox1.TabIndex = 2;
+            uiListBox1.Text = "uiListBox1";
+            uiListBox1.Click += uiListBox1_Click;
             // 
             // topPanel
             // 
@@ -224,10 +372,15 @@
             Controls.Add(mainPanel);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "Form1";
+            Text = "橘子记事本";
             Load += Form1_Load;
             SizeChanged += Form1_SizeChanged;
             mainPanel.ResumeLayout(false);
             mainTab.ResumeLayout(false);
+            settingPage.ResumeLayout(false);
+            tableLayoutPanel1.ResumeLayout(false);
+            tableLayoutPanel2.ResumeLayout(false);
+            tableLayoutPanel2.PerformLayout();
             topPanel.ResumeLayout(false);
             topPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)logoBox).EndInit();
@@ -254,5 +407,14 @@
         private PictureBox oprationBox2;
         private PictureBox oprationBox4;
         private PictureBox oprationBox3;
+        private TabPage settingPage;
+        private TableLayoutPanel tableLayoutPanel1;
+        private TableLayoutPanel tableLayoutPanel2;
+        private Label welcomePWD;
+        private Sunny.UI.UIScrollingText scrollingPwdText1;
+        private Sunny.UI.UITextBox pwdOPBox;
+        private Sunny.UI.UITextBox pwdNPBox;
+        private Button changePwdButton;
+        private Sunny.UI.UIListBox uiListBox1;
     }
 }

@@ -2,10 +2,11 @@ using Sunny.UI;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
-using CredentialManagement;
+//using CredentialManagement;
 //主要部分由Sean ren完成
-//部分由workbuddy(部分提醒),gemini(自适应文字),ChatGPT(splash窗口部分，加密功能)，Github Copilot(笔记卡片动画，splash窗口部分)完成
+//部分由workbuddy(提醒功能部分),gemini(自适应文字),ChatGPT(splash窗口部分，加密功能)，Github Copilot(笔记卡片动画，splash窗口部分)完成
 //这些ai不仅完成了上述部分，还辅助了其他部分的开发
+//本想由Windows凭据管理器管理密码，但发现存储的密码不对，因此暂时搁置
 namespace 橘子记事本
 {
     public partial class Form1 : Form
@@ -404,12 +405,13 @@ namespace 橘子记事本
                             {
                                 pwd = "";
                                 DecryptFile();
+                                goto decryptOk;
                             }
                             catch (CryptographicException)
                             {
 
                             }
-                            UIInputDialog.ShowInputPasswordDialog(ref pwd, UIStyle.DarkBlue, false, "输入解密密码以解密,只能英文，数字", true, 6);
+                            UIInputDialog.ShowInputPasswordDialog(ref pwd, UIStyle.DarkBlue, false, "输入解密密码以解密,只能英文，数字", false, 50);
                             DecryptFile();
                         }
                         catch (CryptographicException)
@@ -422,6 +424,8 @@ namespace 橘子记事本
                     {
                         MessageBox.Show("程序即将关闭，在读取文件时，发生了错误" + ex.ToString(), "橘子记事本发生了一个错误");
                     }
+                decryptOk:
+                    ;
                 }
                 else
                 {
@@ -433,7 +437,7 @@ namespace 橘子记事本
                         string json = JsonSerializer.Serialize(twtw);
                         pwd = "";
                     pwdna:
-                        UIInputDialog.ShowInputPasswordDialog(ref pwd, UIStyle.DarkBlue, false, "欢迎，输入加密密码，不想输入密码可留空,只能英文，数字", true, 6);
+                        UIInputDialog.ShowInputPasswordDialog(ref pwd, UIStyle.DarkBlue, false, "欢迎，输入加密密码，不想输入密码可留空,只能英文，数字", false, 50);
                         if (!IsAsciiLetterOrNumber(pwd))
                         {
                             MessageBox.Show("只能英文，数字\n请重试", "橘子记事本");
@@ -472,6 +476,7 @@ namespace 橘子记事本
                 Close();
                 Application.Exit();
             }
+            showPwdChangeUI(false);
             int welcomeLabelWidth = HomePage.ClientSize.Width / 2;
             int welcomeLabelHeight = (int)(HomePage.ClientSize.Height * 0.3);
             welcomeLabel.AutoSize = false;
@@ -1101,7 +1106,6 @@ namespace 橘子记事本
                 try { note.tAnimationParallel(); } catch { }
             }
         }
-
         private void Note_AnimationCompleted(object? sender, EventArgs e)
         {
             // 取消订阅并判断是否所有动画完成，完成后恢复 AutoScroll
@@ -1129,7 +1133,6 @@ namespace 橘子记事本
                 tWritePage.AutoScroll = true;
             }
         }
-
         private void mainTab_SelectedIndexChanged(object sender, EventArgs e)
         {
             selectedTab = mainTab.SelectedIndex;
@@ -1222,7 +1225,6 @@ namespace 橘子记事本
             refreshNotes();
             refreshTimers(ref timers, twtw);
         }
-
         void noteSelected(tWriteNotes noteCard)
         {
             noteCard.toSelectedColor();
@@ -1231,11 +1233,61 @@ namespace 橘子记事本
         {
             noteCard.toNormalColor();
         }
-
         private void logoBox_DoubleClick(object sender, EventArgs e)
         {
             AboutForm af = new AboutForm();
             af.ShowDialog();
+        }
+        private void changePwdButton_Click(object sender, EventArgs e)
+        {
+            if (pwdOPBox.Text == pwd)
+            {
+                if (IsAsciiLetterOrNumber(pwdOPBox.Text))
+                {
+                    pwd = pwdNPBox.Text;
+                    WriteBack();
+                    UIMessageTip.ShowOk("更改成功");
+                }
+                else
+                {
+                    UIMessageTip.ShowError("新密码不符合要求\n密码只能包含英文字母和数字", 3000);
+                }
+            }
+            else
+            {
+                UIMessageTip.ShowError("旧密码错误", 1000);
+            }
+        }
+        void showPwdChangeUI(bool isToShow)
+        {
+            if (isToShow)
+            {
+                welcomePWD.Visible = true;
+                scrollingPwdText1.Visible = true;
+                pwdOPBox.Visible = true;
+                pwdNPBox.Visible = true;
+                changePwdButton.Visible = true;
+            }
+            else
+            {
+                welcomePWD.Visible = false;
+                scrollingPwdText1.Visible = false;
+                pwdOPBox.Visible = false;
+                pwdNPBox.Visible = false;
+                changePwdButton.Visible = false;
+            }
+        }
+
+        private void uiListBox1_Click(object sender, EventArgs e)
+        {
+            if (uiListBox1.SelectedItem=="加密设置")
+            {
+                showPwdChangeUI(true);
+            }
+            else
+            {
+                showPwdChangeUI(false);
+            }
         }
     }
 }

@@ -87,14 +87,14 @@
             // label2
             // 
             label2.AutoSize = true;
-            label2.BackColor = SystemColors.Highlight;
+            label2.BackColor = SystemColors.Control;
             label2.Dock = DockStyle.Fill;
             label2.Font = new Font("Microsoft YaHei UI", 18F, FontStyle.Regular, GraphicsUnit.Point, 134);
             label2.Location = new Point(670, 0);
             label2.Name = "label2";
             label2.Size = new Size(393, 601);
             label2.TabIndex = 3;
-            label2.Text = "感谢你测试：\r\n橘子记事本\r\nTEST版本-内部\r\n0.2t\r\n\r\n\r\n\r\n";
+            label2.Text = "v0.3\r\n\r\n\r\n\r\n\r\n";
             label2.UseWaitCursor = true;
             // 
             // progressBar1
