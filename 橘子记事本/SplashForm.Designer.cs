@@ -94,7 +94,7 @@
             label2.Name = "label2";
             label2.Size = new Size(393, 601);
             label2.TabIndex = 3;
-            label2.Text = "v0.3\r\n\r\n\r\n\r\n\r\n";
+            label2.Text = "`";
             label2.UseWaitCursor = true;
             // 
             // progressBar1
