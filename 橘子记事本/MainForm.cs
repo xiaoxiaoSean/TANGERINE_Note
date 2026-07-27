@@ -195,8 +195,12 @@ namespace 橘子记事本
                 trayIcon.BalloonTipIcon = ToolTipIcon.Info;
                 trayIcon.ShowBalloonTip(8000);
             }
-            Sound.Beep(2000, 500);
-            Sound.Beep(2000, 500);
+            if (twtw.isSoundBeforeNotice)
+            {
+                Sound.Beep(2000, 500);
+                Sound.Beep(2000, 500);
+            }
+
             // 启动重试计时器：每分钟重新弹一次通知，直到用户点击确认
             _retryTimer?.Stop();
             _retryTimer?.Dispose();
@@ -346,8 +350,12 @@ namespace 橘子记事本
                 null,
                 new EventHandler<DescriptionEventArgs>((s, e) => ConfirmReminder())
             );
-            Sound.Beep(2000, 500);
-            Sound.Beep(2000, 500);
+            if (twtw.isSoundBeforeNotice)
+            {
+                Sound.Beep(2000, 500);
+                Sound.Beep(2000, 500);
+            }
+
             // 启动重试计时器：每分钟重新弹一次通知，直到用户点击确认
             _retryTimer?.Stop();
             _retryTimer?.Dispose();
@@ -1691,7 +1699,7 @@ namespace 橘子记事本
             else
             {
                 isSoundNoticeButton.Text = "提醒声音-开启";
-                twtw.isSoundBeforeNotice=true;
+                twtw.isSoundBeforeNotice = true;
             }
         }
     }
