@@ -1,6 +1,6 @@
 using Sunny.UI.Win32;
 using System.Diagnostics;
-using static 橘子记事本.Form1;
+using static 橘子记事本.MainForm;
 
 namespace 橘子记事本
 {
@@ -41,7 +41,7 @@ namespace 橘子记事本
                     return;
                 }
             }
-            Application.Run(new Form1());            
+            Application.Run(new MainForm());            
         }
     }
 }

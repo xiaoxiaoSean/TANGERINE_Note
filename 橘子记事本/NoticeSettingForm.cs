@@ -161,7 +161,7 @@
                 }
             }
 
-            // 保存提醒方式：1=Windows通知, 2=对话框
+            // 保存提醒方式：1=Windows通知, 2=屏幕右下角提醒
             if (checkBox2_1.Checked)
                 twr.tasksNoticeMethod[nid] = 1;
             else if (checkBox2_2.Checked)

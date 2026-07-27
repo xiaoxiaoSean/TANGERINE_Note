@@ -1,4 +1,5 @@
 using Sunny.UI;
+using System.Media;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -9,14 +10,14 @@ using System.Text.Json;
 //本想由Windows凭据管理器管理密码，但发现存储的密码不对，因此暂时搁置
 namespace 橘子记事本
 {
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
         static SplashForm splash = new SplashForm();
         Thread splashThread = new Thread(() =>
         {
             Application.Run(splash);
         });
-        public Form1()
+        public MainForm()
         {
             InitializeComponent();
             splashThread.Start();
@@ -34,6 +35,11 @@ namespace 橘子记事本
         {
             public static readonly int WM_SHOWME =
                 NativeMethods.RegisterWindowMessage("TANGERINE_TWRITER_SHOW");
+        }
+        class Sound//By chatGPT
+        {
+            [DllImport("kernel32.dll")]
+            public static extern bool Beep(int dwFreq, int dwDuration);
         }
         internal static class NativeMethods
         {
@@ -174,6 +180,7 @@ namespace 橘子记事本
         private void ShowWindowsNotification(string title, int noteIndex)
         {
             _pendingReminderIndex = noteIndex;
+            _pendingReminderMethod = 1;
 
             if (trayIcon != null)
             {
@@ -182,7 +189,8 @@ namespace 橘子记事本
                 trayIcon.BalloonTipIcon = ToolTipIcon.Info;
                 trayIcon.ShowBalloonTip(8000);
             }
-
+            Sound.Beep(2000, 500);
+            Sound.Beep(2000, 500);
             // 启动重试计时器：每分钟重新弹一次通知，直到用户点击确认
             _retryTimer?.Stop();
             _retryTimer?.Dispose();
@@ -196,6 +204,14 @@ namespace 橘子记事本
 
         private void TrayIcon_BalloonTipClicked(object? sender, EventArgs e)
         {
+            ConfirmReminder();
+        }
+
+        /// <summary>
+        /// 用户确认提醒：停止重试计时器，禁用该提醒，保存数据
+        /// </summary>
+        private void ConfirmReminder()
+        {
             if (_pendingReminderIndex < 0) return;
 
             // 停止重试计时器
@@ -205,6 +221,7 @@ namespace 橘子记事本
 
             int idx = _pendingReminderIndex;
             _pendingReminderIndex = -1;
+            _pendingReminderMethod = -1;
 
             // 禁用该提醒
                 twtw.isNoticeEnabled[idx] = false;
@@ -218,7 +235,6 @@ namespace 橘子记事本
 
             // 显示确认 Toast
             UIMessageTip.ShowOk("确认提醒成功", 1000);
-
         }
         void WriteBack()
         {
@@ -282,18 +298,44 @@ namespace 橘子记事本
                 ? (twtw.titles[idx] ?? "提醒")
                 : "提醒";
 
-            // 重新显示通知
-            ShowWindowsNotification(title, idx);
+            // 根据提醒方式重新弹出对应通知
+            if (_pendingReminderMethod == 2)
+                ShowCornerNotification(title, idx);
+            else
+                ShowWindowsNotification(title, idx);
         }
 
-        private void ShowReminderDialog(string title)
+        /// <summary>
+        /// 屏幕右下角提醒：弹出 UINotifier 并启动重试计时器，直到用户点击确认
+        /// </summary>
+        private void ShowCornerNotification(string title, int noteIndex)
         {
+            _pendingReminderIndex = noteIndex;
+            _pendingReminderMethod = 2;
+
             try { System.Media.SystemSounds.Exclamation.Play(); } catch { }
-            MessageBox.Show(
-                $"「{title}」\n\n该笔记的提醒时间已到！",
+
+            // 用户点击通知即视为确认
+            UINotifier.Show(
+                title + "\n该笔记的提醒时间已到！点击确认",
+                UINotifierType.INFO,
                 "橘子记事本 - 提醒",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+                false,
+                0,  // 不自动关闭，等待用户点击
+                null,
+                new EventHandler<DescriptionEventArgs>((s, e) => ConfirmReminder())
+            );
+            Sound.Beep(2000, 500);
+            Sound.Beep(2000, 500);
+            // 启动重试计时器：每分钟重新弹一次通知，直到用户点击确认
+            _retryTimer?.Stop();
+            _retryTimer?.Dispose();
+            _retryTimer = new System.Windows.Forms.Timer
+            {
+                Interval = 60000 // 1 分钟
+            };
+            _retryTimer.Tick += RetryTimer_Tick;
+            _retryTimer.Start();
         }
 
         void triggerPastReminders(twdata twd)
@@ -319,8 +361,8 @@ namespace 橘子记事本
                 }
                 else
                 {
-                    ShowReminderDialog(title);
-                    twd.isNoticeEnabled[i] = false;
+                    // 屏幕右下角提醒：不立即禁用，等待用户点击确认
+                    ShowCornerNotification(title, i);
                 }
             }
         }
@@ -345,8 +387,9 @@ namespace 橘子记事本
         private NotifyIcon? trayIcon;
         private ContextMenuStrip? trayMenu;
         private bool _isActuallyExiting = false;
-        // Windows 通知确认机制
+        // 提醒确认机制
         private int _pendingReminderIndex = -1;
+        private int _pendingReminderMethod = -1; // 1=Windows通知, 2=屏幕右下角提醒
         private System.Windows.Forms.Timer? _retryTimer;
         // 防止 refreshNotice 程序化设置 Checked 时触发 noticeCb_CheckedChanged
         private bool _isRefreshingNotice = false;
@@ -663,23 +706,11 @@ namespace 橘子记事本
             }
             else
             {
-                // 对话框是模态的，用户关闭即视为已确认
-                ShowReminderDialog(title);
-                if (noteIndex < (twtw.isNoticeEnabled?.Count ?? 0))
-                {
-                    twtw.isNoticeEnabled[noteIndex] = false;
-                }
+                // 屏幕右下角提醒：不立即禁用，等待用户点击确认
+                ShowCornerNotification(title, noteIndex);
             }
 
-            // 仅对话框类型在此处保存；Windows 通知类型在点击确认时保存
-            if (method != 1)
-            {
-                try
-                {
-                    WriteBack();
-                }
-                catch { }
-            }
+            // 所有提醒方式均在用户确认后保存，此处不再立即保存
 
             // 如果当前在提醒页面，刷新 UI
             try
@@ -1276,6 +1307,7 @@ namespace 橘子记事本
                 pwdOPBox.Visible = true;
                 pwdNPBox.Visible = true;
                 changePwdButton.Visible = true;
+                uiSwitch1.Visible = false;
             }
             else
             {
@@ -1284,18 +1316,20 @@ namespace 橘子记事本
                 pwdOPBox.Visible = false;
                 pwdNPBox.Visible = false;
                 changePwdButton.Visible = false;
+                uiSwitch1.Visible = false;
             }
         }
 
         private void uiListBox1_Click(object sender, EventArgs e)
         {
-            if (uiListBox1.SelectedItem=="加密设置")
+            switch (uiListBox1.SelectedItem.ToString())
             {
-                showPwdChangeUI(true);
-            }
-            else
-            {
-                showPwdChangeUI(false);
+                default:
+                    showPwdChangeUI(false);
+                    break;
+                case "加密":
+                    showPwdChangeUI(true);
+                    break;
             }
         }
     }

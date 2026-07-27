@@ -1,6 +1,6 @@
 ﻿namespace 橘子记事本
 {
-    partial class Form1
+    partial class MainForm
     {
         /// <summary>
         ///  Required designer variable.
@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             mainPanel = new TableLayoutPanel();
             mainTab = new TabControl();
             HomePage = new TabPage();
@@ -42,7 +42,8 @@
             scrollingPwdText1 = new Sunny.UI.UIScrollingText();
             pwdOPBox = new Sunny.UI.UITextBox();
             changePwdButton = new Button();
-            uiListBox1 = new Sunny.UI.UIListBox();
+            uiSwitch1 = new Sunny.UI.UISwitch();
+            uiListBox1 = new ListBox();
             topPanel = new TableLayoutPanel();
             logoBox = new PictureBox();
             label1 = new Label();
@@ -162,6 +163,7 @@
             tableLayoutPanel2.Controls.Add(scrollingPwdText1, 1, 0);
             tableLayoutPanel2.Controls.Add(pwdOPBox, 0, 1);
             tableLayoutPanel2.Controls.Add(changePwdButton, 0, 3);
+            tableLayoutPanel2.Controls.Add(uiSwitch1, 1, 1);
             tableLayoutPanel2.Dock = DockStyle.Fill;
             tableLayoutPanel2.Location = new Point(182, 3);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
@@ -241,24 +243,26 @@
             changePwdButton.UseVisualStyleBackColor = true;
             changePwdButton.Click += changePwdButton_Click;
             // 
+            // uiSwitch1
+            // 
+            uiSwitch1.Dock = DockStyle.Fill;
+            uiSwitch1.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            uiSwitch1.Location = new Point(846, 105);
+            uiSwitch1.MinimumSize = new Size(1, 1);
+            uiSwitch1.Name = "uiSwitch1";
+            uiSwitch1.Size = new Size(324, 114);
+            uiSwitch1.TabIndex = 5;
+            uiSwitch1.Text = "uiSwitch1";
+            // 
             // uiListBox1
             // 
             uiListBox1.Dock = DockStyle.Fill;
-            uiListBox1.FillColor = Color.White;
-            uiListBox1.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            uiListBox1.HoverColor = Color.FromArgb(155, 200, 255);
-            uiListBox1.Items.AddRange(new object[] { "加密设置" });
-            uiListBox1.ItemSelectForeColor = Color.White;
-            uiListBox1.Location = new Point(4, 5);
-            uiListBox1.Margin = new Padding(4, 5, 4, 5);
-            uiListBox1.MinimumSize = new Size(1, 1);
+            uiListBox1.FormattingEnabled = true;
+            uiListBox1.Items.AddRange(new object[] { "加密", "开发者选项" });
+            uiListBox1.Location = new Point(3, 3);
             uiListBox1.Name = "uiListBox1";
-            uiListBox1.Padding = new Padding(25);
-            uiListBox1.Radius = 50;
-            uiListBox1.ShowText = false;
-            uiListBox1.Size = new Size(171, 572);
+            uiListBox1.Size = new Size(173, 576);
             uiListBox1.TabIndex = 2;
-            uiListBox1.Text = "uiListBox1";
             uiListBox1.Click += uiListBox1_Click;
             // 
             // topPanel
@@ -364,14 +368,14 @@
             oprationBox3.TabIndex = 2;
             oprationBox3.TabStop = false;
             // 
-            // Form1
+            // MainForm
             // 
             AutoScaleDimensions = new SizeF(11F, 24F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1378, 788);
             Controls.Add(mainPanel);
             Icon = (Icon)resources.GetObject("$this.Icon");
-            Name = "Form1";
+            Name = "MainForm";
             Text = "橘子记事本";
             Load += Form1_Load;
             SizeChanged += Form1_SizeChanged;
@@ -415,6 +419,7 @@
         private Sunny.UI.UITextBox pwdOPBox;
         private Sunny.UI.UITextBox pwdNPBox;
         private Button changePwdButton;
-        private Sunny.UI.UIListBox uiListBox1;
+        private ListBox uiListBox1;
+        private Sunny.UI.UISwitch uiSwitch1;
     }
 }

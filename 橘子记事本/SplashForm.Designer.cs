@@ -94,8 +94,9 @@
             label2.Name = "label2";
             label2.Size = new Size(393, 601);
             label2.TabIndex = 3;
-            label2.Text = "v1.0.1";
+            label2.Text = "v1.0.5";
             label2.UseWaitCursor = true;
+            label2.Click += label2_Click;
             // 
             // progressBar1
             // 
