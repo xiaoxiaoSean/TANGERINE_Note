@@ -17,6 +17,11 @@ namespace 橘子记事本
         {
             Application.Run(splash);
         });
+        class Native
+        {
+            [DllImport("CryptoNative.dll")]
+            public static extern int Add(int a, int b);
+        }
         public MainForm()
         {
             InitializeComponent();
@@ -387,6 +392,7 @@ namespace 橘子记事本
         private NotifyIcon? trayIcon;
         private ContextMenuStrip? trayMenu;
         private bool _isActuallyExiting = false;
+        SearchControl searcher= new SearchControl();
         // 提醒确认机制
         private int _pendingReminderIndex = -1;
         private int _pendingReminderMethod = -1; // 1=Windows通知, 2=屏幕右下角提醒
@@ -1076,6 +1082,9 @@ namespace 橘子记事本
         {
             notesToShow = Array.Empty<tWriteNotes>();
             tWritePage.Controls.Clear();
+            searcher.Location=new Point(0,0);
+            searcher.Size=new Size(tWritePage.Width*2/3,tWritePage.Height/5);
+            tWritePage.Controls.Add(searcher);
             // 在开始构建并启动动画之前，先禁用父容器自动滚动
             tWritePage.AutoScroll = false;
             int titleCount = twtw?.titles?.Count ?? 0;
@@ -1086,7 +1095,7 @@ namespace 橘子记事本
 
             if (titleCount != noteCount)
             {
-                MessageBox.Show("笔记标题数和笔记正文数不相同，无法加载笔记\n你可以使用笔记修正工具来修复你的笔记\n,因此橘子记事本即将关闭");
+                MessageBox.Show("笔记标题数和笔记正文数不相同，无法加载笔记\n因此橘子记事本即将关闭");
                 _isActuallyExiting = true;
                 Application.Exit();
                 return;
@@ -1112,7 +1121,7 @@ namespace 橘子记事本
                 notesToShow[i].DoubleClick += note_doubleClick;
             }
             bool isFirstNote = true;
-            int nowNoteY = 0;
+            int nowNoteY = tWritePage.Height / 5;
             foreach (var note in notesToShow)
             {
                 note.Title = twtw.titles[Array.IndexOf(notesToShow, note)];
@@ -1134,8 +1143,8 @@ namespace 橘子记事本
                 }
 
                 // 防御性赋值：保证控件有可显示的文字
-                if (string.IsNullOrWhiteSpace(note.Title)) note.Title = "(无标题)";
-                if (string.IsNullOrWhiteSpace(note.NoteText)) note.NoteText = "(无正文)";
+                if (string.IsNullOrWhiteSpace(note.Title)) note.Title = "";
+                if (string.IsNullOrWhiteSpace(note.NoteText)) note.NoteText = "";
 
                 // 先设置预期目标位置，然后把控件放到起始（不偏移）位置
                 note.IntendedLocation = intended;

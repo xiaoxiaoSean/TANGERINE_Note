@@ -19,5 +19,13 @@ namespace 橘子记事本
         {
             uiTextBox1.Watermark = "在这里输入你想搜索什么，可以换行的";
         }
+        string returnContent()
+        {
+            return uiTextBox1.Text;
+        }
+        public void reset()
+        {
+            uiTextBox1.Text = "";
+        }
     }
 }
