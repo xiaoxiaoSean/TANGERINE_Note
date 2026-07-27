@@ -1,4 +1,3 @@
-using Sunny.UI;
 using System.Media;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -34,6 +33,8 @@ namespace 橘子记事本
             _sizeChangedTimer.Tick += SizeChangedTimer_Tick;
             FormClosing += Form1_FormClosing;
             SetupTrayIcon();
+            // 订阅搜索控件的文本改变事件：当用户在搜索框输入时触发异步搜索 (workbuddy-20260727)
+            searcher.SearchTextChanged += OnSearchTextChanged;
         }
         //两个实例不能同时运行-开始
         public static class SingleInstance
@@ -209,11 +210,11 @@ namespace 橘子记事本
 
         private void TrayIcon_BalloonTipClicked(object? sender, EventArgs e)
         {
-            ConfirmReminder();
+            ConfirmReminder();//TODO:修复bug，此处不显示 确认提醒成功 tip
         }
 
         /// <summary>
-        /// 用户确认提醒：停止重试计时器，禁用该提醒，保存数据
+        /// 用户确认提醒：停止重试计时器，禁用该提醒，保存数据 (workbuddy-20260727)
         /// </summary>
         private void ConfirmReminder()
         {
@@ -228,9 +229,19 @@ namespace 橘子记事本
             _pendingReminderIndex = -1;
             _pendingReminderMethod = -1;
 
-            // 禁用该提醒
+            // 禁用该提醒（边界检查，防止索引越界导致后续 refreshNotice 不执行）(workbuddy-20260727)
+            if (idx >= 0 && idx < (twtw.isNoticeEnabled?.Count ?? 0))
+            {
                 twtw.isNoticeEnabled[idx] = false;
-            refreshNotice();
+            }
+
+            // 确认提醒后，执行 refreshNotice 刷新提醒界面 (workbuddy-20260727)
+            try
+            {
+                refreshNotice();
+            }
+            catch { }
+
             // 保存数据
             try
             {
@@ -238,8 +249,13 @@ namespace 橘子记事本
             }
             catch { }
 
-            // 显示确认 Toast
-            UIMessageTip.ShowOk("确认提醒成功", 1000);
+            // 显示确认 tip (workbuddy-20260727)
+            // UIMessageTip.ShowOk 内部在后台 STA 线程上创建并显示 Toast 窗口，不依赖 MainForm 前台状态
+            try
+            {
+                UIMessageTip.ShowOk("确认提醒成功", 1000);
+            }
+            catch { }
         }
         void WriteBack()
         {
@@ -392,7 +408,30 @@ namespace 橘子记事本
         private NotifyIcon? trayIcon;
         private ContextMenuStrip? trayMenu;
         private bool _isActuallyExiting = false;
-        SearchControl searcher= new SearchControl();
+        SearchControl searcher = new SearchControl();
+        // 搜索功能相关变量声明 (workbuddy-20260727)
+        /// <summary>
+        /// 全局搜索内容：保存当前搜索词。
+        /// 当不为 null 或空时，refreshNotes 会自动将其填入 searcher 的搜索框并开始异步搜索。
+        /// </summary>
+        string searcherContent = "";
+        /// <summary>
+        /// 异步搜索的取消令牌源：当用户连续输入时，取消上一次未完成的搜索，避免竞态。
+        /// </summary>
+        private CancellationTokenSource? _searchCts;
+        /// <summary>
+        /// 搜索锁：保护 _searchCts 的并发访问。
+        /// </summary>
+        private readonly object _searchLock = new object();
+        /// <summary>
+        /// 防循环标志：当程序自动设置搜索框文本时为 true，避免 TextChanged 事件递归触发搜索。
+        /// </summary>
+        private bool _isSettingSearchText = false;
+        /// <summary>
+        /// 搜索添加是否已完成：搜索模式下动态添加笔记卡片时为 false，全部添加完毕后置为 true。
+        /// 用于在 Note_AnimationCompleted 中判断是否可以恢复 AutoScroll。
+        /// </summary>
+        private volatile bool _searchAddingFinished = true;
         // 提醒确认机制
         private int _pendingReminderIndex = -1;
         private int _pendingReminderMethod = -1; // 1=Windows通知, 2=屏幕右下角提醒
@@ -460,7 +499,7 @@ namespace 橘子记事本
                             {
 
                             }
-                            UIInputDialog.ShowInputPasswordDialog(ref pwd, UIStyle.DarkBlue, false, "输入解密密码以解密,只能英文，数字", false, 50);
+                            ShowPasswordDialog(ref pwd, "输入解密密码以解密,只能英文，数字", 50); // 直接实例化UIInputForm，Shown事件自动选中文本框 (workbuddy-20260727)
                             DecryptFile();
                         }
                         catch (CryptographicException)
@@ -486,7 +525,7 @@ namespace 橘子记事本
                         string json = JsonSerializer.Serialize(twtw);
                         pwd = "";
                     pwdna:
-                        UIInputDialog.ShowInputPasswordDialog(ref pwd, UIStyle.DarkBlue, false, "欢迎，输入加密密码，不想输入密码可留空,只能英文，数字", false, 50);
+                        ShowPasswordDialog(ref pwd, "欢迎，输入加密密码，不想输入密码可留空,只能英文，数字", 50); // 直接实例化UIInputForm，Shown事件自动选中文本框 (workbuddy-20260727)
                         if (!IsAsciiLetterOrNumber(pwd))
                         {
                             MessageBox.Show("只能英文，数字\n请重试", "橘子记事本");
@@ -737,13 +776,12 @@ namespace 橘子记事本
             foreach (char c in str)
             {
                 if (!((c >= 'a' && c <= 'z') ||
-                      (c >= 'A' && c <= 'Z') ||
-                      (c >= '0' && c <= '9')))
+                     !(c >= 'A' && c <= 'Z') ||
+                     !(c >= '0' && c <= '9')))
                 {
                     return false;
                 }
             }
-
             return true;
         }
         twdata preparetw(twdata twnull)
@@ -1078,20 +1116,300 @@ namespace 橘子记事本
                 refreshNotice();
             }
         }
-        void refreshNotes()
+        /// <summary>
+        /// 显示密码输入对话框并自动选中文本框 (workbuddy-20260727)
+        /// 直接实例化 SunnyUI 的 UIInputForm（而非使用静态方法 UIInputDialog.ShowInputPasswordDialog），
+        /// 以便在 Shown 事件中直接访问 Editor 属性并设置焦点。
+        /// UIInputForm 源码中已有 Shown 事件调用 edit.SelectAll()，但缺少 Focus()，
+        /// 导致文本框虽有选中文本但未获得键盘焦点，用户输入不会进入文本框。
+        /// 此方法在 Shown 中补充 Focus()，确保用户可直接打字输入。
+        /// </summary>
+        /// <param name="value">传入默认值，返回用户输入的密码</param>
+        /// <param name="desc">对话框描述文字</param>
+        /// <param name="maxLength">最大输入长度</param>
+        /// <returns>用户点击确定返回 true，取消返回 false</returns>
+        private bool ShowPasswordDialog(ref string value, string desc, int maxLength)
         {
+            // 直接实例化 UIInputForm（public sealed 类，有 public 无参构造函数）(workbuddy-20260727)
+            using var frm = new UIInputForm();
+            // 设置对话框基本属性，与原 ShowInputPasswordDialog 静态方法内部逻辑一致
+            frm.Text = UIStyles.CurrentResources.InputTitle;
+            frm.Label.Text = desc;
+            frm.CheckInputEmpty = false;
+            frm.Editor.PasswordChar = '*';
+            frm.Editor.MaxLength = maxLength;
+            frm.Style = UIStyle.DarkBlue;
+            frm.ShowInTaskbar = false;
+            frm.TopMost = true;
+            frm.StartPosition = FormStartPosition.CenterScreen;
+
+            // 对话框显示后自动选中文本框并设置键盘焦点 (workbuddy-20260727)
+            // UIInputForm 自身的 Shown 事件已调用 edit.SelectAll()，但未 Focus()
+            // 此处补充 Focus()，确保键盘输入直接进入文本框
+            frm.Shown += (s, e) =>
+            {
+                try
+                {
+                    frm.Editor.Focus();
+                    frm.Editor.SelectAll();
+                }
+                catch { }
+            };
+
+            try { frm.Render(); } catch { }
+            if (frm.ShowDialog() == DialogResult.OK)
+            {
+                value = frm.Editor.Text;
+                return true;
+            }
+            return false;
+        }
+        /// <summary>
+        /// 搜索框文本改变事件处理：更新全局搜索内容并触发统一刷新 (workbuddy-20260727)
+        /// 当用户在搜索文本框输入文字时，更新 searcherContent，然后调用 refreshNotes 统一刷新。
+        /// refreshNotes 内部会判断 searcherContent 是否为空，若不为空则执行异步搜索。
+        /// </summary>
+        private void OnSearchTextChanged(object? sender, EventArgs e)
+        {
+            // 如果是程序自动设置搜索框文本（防递归），直接返回，不触发搜索 (workbuddy-20260727)
+            if (_isSettingSearchText) return;
+
+            // 读取当前搜索框文本，更新全局搜索内容 (workbuddy-20260727)
+            searcherContent = searcher.SearchText ?? "";
+
+            // 调用 refreshNotes 统一刷新：refreshNotes 内部会根据 searcherContent 决定走搜索逻辑还是显示全部 (workbuddy-20260727)
+            refreshNotes();
+        }
+
+        /// <summary>
+        /// 取消正在进行的异步搜索 (workbuddy-20260727)
+        /// 在启动新搜索或刷新前调用，避免上一次未完成的搜索干扰当前结果。
+        /// </summary>
+        private void CancelSearch()
+        {
+            lock (_searchLock)
+            {
+                try { _searchCts?.Cancel(); } catch { }
+                try { _searchCts?.Dispose(); } catch { }
+                _searchCts = null;
+            }
+        }
+
+        /// <summary>
+        /// 移除 tWritePage 中的所有笔记卡片，保留 searcher 控件 (workbuddy-20260727)
+        /// 不使用 tWritePage.Controls.Clear() 是因为那会移除 searcher 导致搜索框失焦，
+        /// 从而干涉用户在搜索过程中的连续输入。
+        /// 搜索时或动画播放时若用户继续输入，本方法只清除笔记卡片，搜索框保持焦点不受影响。
+        /// </summary>
+        private void RemoveNoteCards()
+        {
+            // 先收集所有需要移除的笔记卡片，避免在遍历时修改集合
+            List<Control> toRemove = new List<Control>();
+            foreach (Control c in tWritePage.Controls)
+            {
+                if (c is tWriteNotes)
+                {
+                    toRemove.Add(c);
+                }
+            }
+            // 逐个移除并释放
+            foreach (var c in toRemove)
+            {
+                tWritePage.Controls.Remove(c);
+                try { c.Dispose(); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// 异步搜索核心实现 (workbuddy-20260727)
+        /// 遍历所有笔记的标题和正文，只要标题或正文包含搜索词，就将该笔记以动画方式添加到 tWritePage。
+        /// 采用异步方式，每添加一个匹配的笔记后短暂让出 UI 线程，让动画得以播放，然后继续搜索下一个笔记，
+        /// 直到遍历完所有笔记的标题和正文。
+        /// 若遍历完所有笔记后没有任何匹配结果，则在对应位置标记 //TODO:123。
+        /// </summary>
+        /// <param name="keyword">搜索关键词</param>
+        private async Task PerformSearchAsync(string keyword)
+        {
+            // 创建本次搜索的取消令牌：用户继续输入时会取消上一次搜索 (workbuddy-20260727)
+            CancellationTokenSource cts;
+            lock (_searchLock)
+            {
+                try { _searchCts?.Cancel(); } catch { }
+                try { _searchCts?.Dispose(); } catch { }
+                _searchCts = new CancellationTokenSource();
+                cts = _searchCts;
+            }
+            CancellationToken ct = cts.Token;
+
+            int titleCount = twtw?.titles?.Count ?? 0;
+            int noteCount = twtw?.notes?.Count ?? 0;
+
+            // 数据为空时直接标记 TODO 并返回 (workbuddy-20260727)
+            if (titleCount == 0 || noteCount == 0)
+            {
+                tWritePage.Controls.Add(new TextBox { Text = "没有笔记" });
+                tWritePage.AutoScroll = true;
+                _searchAddingFinished = true;
+                return;
+            }
+
+            // 初始化搜索模式下的动画计数状态 (workbuddy-20260727)
+            // 搜索模式下笔记是动态添加的，总数未知，因此先置 0，每添加一个就 +1
+            _searchAddingFinished = false;
+            lock (_notesAnimationLock)
+            {
+                _notesAnimationTotal = 0;
+                _notesAnimationCompleted = 0;
+            }
+
+            // 收集匹配的笔记卡片，最后统一赋值给 notesToShow (workbuddy-20260727)
+            List<tWriteNotes> matchedNotes = new List<tWriteNotes>();
+            int matchCount = 0;
+
+            // 布局状态：与原 refreshNotes 保持一致的双列布局 (workbuddy-20260727)
+            bool isFirstNote = true;
+            int nowNoteY = tWritePage.Height / 5;
+
+            // 开始遍历所有笔记的标题和正文 (workbuddy-20260727)
+            for (int i = 0; i < titleCount; i++)
+            {
+                // 检查是否被取消（用户又输入了新内容）(workbuddy-20260727)
+                ct.ThrowIfCancellationRequested();
+
+                string title = twtw.titles[i] ?? "";
+                string note = twtw.notes[i] ?? "";
+
+                // 只要标题和正文中有一个包含搜索词，就添加该笔记 (workbuddy-20260727)
+                bool matched = title.Contains(keyword) || note.Contains(keyword);
+                if (!matched)
+                {
+                    // 不匹配则继续搜索下一个笔记
+                    continue;
+                }
+
+                // ===== 创建匹配的笔记卡片并添加到 tWritePage ===== (workbuddy-20260727)
+
+                // 创建笔记卡片控件
+                tWriteNotes noteCard = new tWriteNotes
+                {
+                    Width = tWritePage.Width / 2,
+                    Height = tWritePage.Height / 3,
+                    NoteId = i
+                };
+                noteCard.Click += note_Click;
+                noteCard.DoubleClick += note_doubleClick;
+
+                // 设置标题和正文（防御性赋值，保证有可显示文字）
+                noteCard.Title = string.IsNullOrWhiteSpace(title) ? "" : title;
+                noteCard.NoteText = string.IsNullOrWhiteSpace(note) ? "" : note;
+
+                // 计算该卡片的目标位置（双列布局，与原 refreshNotes 一致）
+                Point intended;
+                if (isFirstNote)
+                {
+                    intended = new Point(0, nowNoteY);
+                    isFirstNote = false;
+                }
+                else
+                {
+                    intended = new Point(tWritePage.Width / 2, nowNoteY);
+                    nowNoteY += tWritePage.Height / 3;
+                    isFirstNote = true;
+                }
+
+                // 设置预期目标位置和当前显示位置
+                noteCard.IntendedLocation = intended;
+                noteCard.Location = intended;
+
+                // 动态增加动画总数：每添加一个笔记卡片，总数 +1 (workbuddy-20260727)
+                lock (_notesAnimationLock)
+                {
+                    _notesAnimationTotal++;
+                }
+
+                // 将笔记卡片添加到 tWritePage，此时会触发笔记显示动画 (workbuddy-20260727)
+                // 参考 tWriteNotes 的 ParentChanged 事件：被添加到父容器后会自动启动入场动画
+                tWritePage.Controls.Add(noteCard);
+
+                // 订阅动画完成事件（保险调用，与原 refreshNotes 保持一致）
+                try { noteCard.AnimationCompleted += Note_AnimationCompleted; } catch { }
+                // 显式启动并行动画（保险调用，tWriteNotes 内部也会自动启动）
+                try { noteCard.tAnimationParallel(); } catch { }
+
+                // 记录到匹配列表
+                matchedNotes.Add(noteCard);
+                matchCount++;
+
+                // 异步等待一小段时间：让 UI 线程有机会渲染动画，然后继续搜索下一个笔记 (workbuddy-20260727)
+                // 采用 await Task.Delay 让出 UI 线程，避免阻塞界面
+                try
+                {
+                    await Task.Delay(50, ct);
+                }
+                catch (OperationCanceledException)
+                {
+                    // 搜索被取消：直接抛出，由外层捕获
+                    throw;
+                }
+            }
+            // 遍历完所有笔记的标题和正文，搜索结束 (workbuddy-20260727)
+
+            // 更新全局 notesToShow 数组，供点击/删除等逻辑使用
+            notesToShow = matchedNotes.ToArray();
+
+            // 搜索结果为空：遍历所有笔记后没有一个包含搜索词 (workbuddy-20260727)
+            if (matchCount == 0)
+            {
+                tWritePage.Controls.Add(new TextBox { Text = "没找到符合搜索条件的笔记" });
+                tWritePage.AutoScroll = true;
+                _searchAddingFinished = true;
+                return;
+            }
+
+            // 标记搜索添加已完成，此后所有动画完成时即可恢复 AutoScroll (workbuddy-20260727)
+            _searchAddingFinished = true;
+
+            // 检查是否所有动画已经完成（可能在添加过程中动画已全部播完）
+            bool restoreScroll = false;
+            lock (_notesAnimationLock)
+            {
+                if (_notesAnimationCompleted >= _notesAnimationTotal)
+                {
+                    restoreScroll = true;
+                }
+            }
+            if (restoreScroll)
+            {
+                tWritePage.AutoScroll = true;
+            }
+        }
+
+        async void refreshNotes()
+        {
+            // 取消正在进行的搜索，避免竞态 (workbuddy-20260727)
+            CancelSearch();
+
             notesToShow = Array.Empty<tWriteNotes>();
-            tWritePage.Controls.Clear();
-            searcher.Location=new Point(0,0);
-            searcher.Size=new Size(tWritePage.Width*2/3,tWritePage.Height/5);
-            tWritePage.Controls.Add(searcher);
+            // 只移除笔记卡片，保留 searcher 控件，避免搜索框被移除导致失焦，干涉用户输入 (workbuddy-20260727)
+            // 注意：不使用 tWritePage.Controls.Clear()，因为那会移除 searcher 导致搜索框失焦
+            RemoveNoteCards();
+            // 确保 searcher 在 tWritePage 中（首次加载或被移除时才添加）
+            if (!tWritePage.Controls.Contains(searcher))
+            {
+                searcher.Location = new Point(0, 0);
+                searcher.Size = new Size(tWritePage.Width * 2 / 3, tWritePage.Height / 5);
+                tWritePage.Controls.Add(searcher);
+            }
             // 在开始构建并启动动画之前，先禁用父容器自动滚动
             tWritePage.AutoScroll = false;
             int titleCount = twtw?.titles?.Count ?? 0;
             int noteCount = twtw?.notes?.Count ?? 0;
 
             if (titleCount == 0 && noteCount == 0)
+            {
+                tWritePage.Controls.Add(new TextBox { Text = "没有笔记" });
                 return;
+            }
 
             if (titleCount != noteCount)
             {
@@ -1100,6 +1418,31 @@ namespace 橘子记事本
                 Application.Exit();
                 return;
             }
+
+            // 当 searcherContent 不为 null 或空时，直接在 searcher 的搜索文本输入处自动填入 searcherContent 开始搜索 (workbuddy-20260727)
+            if (!string.IsNullOrEmpty(searcherContent))
+            {
+                // 防递归：程序自动设置搜索框文本时，不触发 OnSearchTextChanged
+                _isSettingSearchText = true;
+                searcher.SearchText = searcherContent;
+                _isSettingSearchText = false;
+
+                // 执行异步搜索：遍历所有笔记的标题和正文，匹配则添加到 tWritePage 并播放动画 (workbuddy-20260727)
+                try
+                {
+                    await PerformSearchAsync(searcherContent);
+                }
+                catch (OperationCanceledException)
+                {
+                    // 搜索被取消（用户又输入了新内容），忽略即可，新的搜索已在 refreshNotes 开头启动
+                }
+                catch { }
+                return;
+            }
+
+            // ===== 以下为无搜索词时显示全部笔记的原有逻辑 ===== (workbuddy-20260727)
+            // 非搜索模式下，动画总数在添加前已知，直接设置
+            _searchAddingFinished = true;
 
             int notesCount = titleCount;
             // 重置动画计数器
@@ -1171,7 +1514,8 @@ namespace 橘子记事本
             lock (_notesAnimationLock)
             {
                 _notesAnimationCompleted++;
-                if (_notesAnimationTotal > 0 && _notesAnimationCompleted >= _notesAnimationTotal)
+                // 搜索模式下需额外检查 _searchAddingFinished，避免在动态添加过程中提前恢复 AutoScroll (workbuddy-20260727)
+                if (_searchAddingFinished && _notesAnimationTotal > 0 && _notesAnimationCompleted >= _notesAnimationTotal)
                 {
                     restore = true;
                 }
@@ -1312,20 +1656,20 @@ namespace 橘子记事本
             if (isToShow)
             {
                 welcomePWD.Visible = true;
-                scrollingPwdText1.Visible = true;
                 pwdOPBox.Visible = true;
                 pwdNPBox.Visible = true;
+                pwdOPBox.Watermark = "输入旧密码";
+                pwdNPBox.Watermark = "输入新密码";
                 changePwdButton.Visible = true;
-                uiSwitch1.Visible = false;
+                isSoundNoticeButton.Visible = false;
             }
             else
             {
                 welcomePWD.Visible = false;
-                scrollingPwdText1.Visible = false;
                 pwdOPBox.Visible = false;
                 pwdNPBox.Visible = false;
                 changePwdButton.Visible = false;
-                uiSwitch1.Visible = false;
+                isSoundNoticeButton.Visible = false;
             }
         }
 
@@ -1339,6 +1683,31 @@ namespace 橘子记事本
                 case "加密":
                     showPwdChangeUI(true);
                     break;
+                case "提醒":
+                    showPwdChangeUI(false);
+                    isSoundNoticeButton.Visible = true;
+                    if (twtw.isSoundBeforeNotice)
+                    {
+                        isSoundNoticeButton.Text = "提醒声音-开启";
+                    }
+                    else
+                    {
+                        isSoundNoticeButton.Text = "提醒声音-关闭";
+                    }
+                    break;
+            }
+        }
+        private void isSoundNoticeButton_Click(object sender, EventArgs e)
+        {
+            if (isSoundNoticeButton.Text == "提醒声音-开启")
+            {
+                isSoundNoticeButton.Text = "提醒声音-关闭";
+                twtw.isSoundBeforeNotice = false;
+            }
+            else
+            {
+                isSoundNoticeButton.Text = "提醒声音-开启";
+                twtw.isSoundBeforeNotice=true;
             }
         }
     }

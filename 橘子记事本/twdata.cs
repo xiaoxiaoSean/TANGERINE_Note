@@ -14,7 +14,7 @@
         public List<int> taskNoticeCfg2 { get; set; }
         public List<DateTime> tasksNoticeTime { get; set; }
         public List<TimeSpan> taskNoticeTime2 { get; set; }
-        public bool isSoundBeforeNotice { get; set; }
+        public bool isSoundBeforeNotice { get; set; } = true;
     }
     public class twdata1_0//为数据更新做好准备(1.0->1.1)
     {
@@ -30,6 +30,6 @@
         public List<int> taskNoticeCfg2 { get; set; }
         public List<DateTime> tasksNoticeTime { get; set; }
         public List<TimeSpan> taskNoticeTime2 { get; set; }
-        public bool isSoundBeforeNotice { get; set; }
+        public bool isSoundBeforeNotice { get; set; } = true;
     }
 }

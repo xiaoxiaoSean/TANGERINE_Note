@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             tableLayoutPanel1 = new TableLayoutPanel();
-            uiTextBox1 = new Sunny.UI.UITextBox();
+            uiTextBox1 = new UITextBox();
             pictureBox1 = new PictureBox();
             tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
@@ -95,6 +95,6 @@
 
         private TableLayoutPanel tableLayoutPanel1;
         private PictureBox pictureBox1;
-        private Sunny.UI.UITextBox uiTextBox1;
+        private UITextBox uiTextBox1;
     }
 }

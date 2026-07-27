@@ -37,12 +37,11 @@
             settingPage = new TabPage();
             tableLayoutPanel1 = new TableLayoutPanel();
             tableLayoutPanel2 = new TableLayoutPanel();
-            pwdNPBox = new Sunny.UI.UITextBox();
+            pwdNPBox = new UITextBox();
             welcomePWD = new Label();
-            scrollingPwdText1 = new Sunny.UI.UIScrollingText();
-            pwdOPBox = new Sunny.UI.UITextBox();
+            pwdOPBox = new UITextBox();
             changePwdButton = new Button();
-            uiSwitch1 = new Sunny.UI.UISwitch();
+            isSoundNoticeButton = new Button();
             uiListBox1 = new ListBox();
             topPanel = new TableLayoutPanel();
             logoBox = new PictureBox();
@@ -160,10 +159,9 @@
             tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28.1329918F));
             tableLayoutPanel2.Controls.Add(pwdNPBox, 0, 2);
             tableLayoutPanel2.Controls.Add(welcomePWD, 0, 0);
-            tableLayoutPanel2.Controls.Add(scrollingPwdText1, 1, 0);
             tableLayoutPanel2.Controls.Add(pwdOPBox, 0, 1);
             tableLayoutPanel2.Controls.Add(changePwdButton, 0, 3);
-            tableLayoutPanel2.Controls.Add(uiSwitch1, 1, 1);
+            tableLayoutPanel2.Controls.Add(isSoundNoticeButton, 1, 0);
             tableLayoutPanel2.Dock = DockStyle.Fill;
             tableLayoutPanel2.Location = new Point(182, 3);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
@@ -178,6 +176,7 @@
             // 
             // pwdNPBox
             // 
+            pwdNPBox.BorderStyle = BorderStyle.FixedSingle;
             pwdNPBox.Dock = DockStyle.Fill;
             pwdNPBox.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
             pwdNPBox.Location = new Point(4, 227);
@@ -185,39 +184,24 @@
             pwdNPBox.MaxLength = 50;
             pwdNPBox.MinimumSize = new Size(1, 16);
             pwdNPBox.Name = "pwdNPBox";
-            pwdNPBox.Padding = new Padding(5);
-            pwdNPBox.ShowText = false;
-            pwdNPBox.Size = new Size(835, 126);
+            pwdNPBox.PasswordChar = '*';
+            pwdNPBox.Size = new Size(835, 35);
             pwdNPBox.TabIndex = 3;
-            pwdNPBox.TextAlignment = ContentAlignment.MiddleLeft;
-            pwdNPBox.Watermark = "输入新密码(若要不设密码，就留空，只能写英文字母和数字，最多50位)";
             // 
             // welcomePWD
             // 
             welcomePWD.AutoSize = true;
+            welcomePWD.Dock = DockStyle.Fill;
             welcomePWD.Font = new Font("Microsoft YaHei UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
             welcomePWD.Location = new Point(3, 0);
             welcomePWD.Name = "welcomePWD";
-            welcomePWD.Size = new Size(398, 102);
+            welcomePWD.Size = new Size(837, 102);
             welcomePWD.TabIndex = 0;
             welcomePWD.Text = "欢迎来到加密设置界面\r\n重要保密数据请用你信任的软件存储\r\n若要更改加密密码，请在下方操作\r\n\r\n";
             // 
-            // scrollingPwdText1
-            // 
-            scrollingPwdText1.Active = true;
-            scrollingPwdText1.Dock = DockStyle.Fill;
-            scrollingPwdText1.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            scrollingPwdText1.Interval = 100;
-            scrollingPwdText1.Location = new Point(846, 3);
-            scrollingPwdText1.MinimumSize = new Size(1, 1);
-            scrollingPwdText1.Name = "scrollingPwdText1";
-            scrollingPwdText1.Radius = 90;
-            scrollingPwdText1.Size = new Size(324, 96);
-            scrollingPwdText1.TabIndex = 1;
-            scrollingPwdText1.Text = "免责声明：数据如果泄露，与橘子记事本及其开发者和贡献者无关。  数据安全不可忽视，请用你信任的软件存储你的保密数据，数据如果泄露，与橘子记事本及其开发者和贡献者无关";
-            // 
             // pwdOPBox
             // 
+            pwdOPBox.BorderStyle = BorderStyle.FixedSingle;
             pwdOPBox.Dock = DockStyle.Fill;
             pwdOPBox.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
             pwdOPBox.Location = new Point(4, 107);
@@ -225,12 +209,9 @@
             pwdOPBox.MaxLength = 50;
             pwdOPBox.MinimumSize = new Size(1, 16);
             pwdOPBox.Name = "pwdOPBox";
-            pwdOPBox.Padding = new Padding(5);
-            pwdOPBox.ShowText = false;
-            pwdOPBox.Size = new Size(835, 110);
+            pwdOPBox.PasswordChar = '*';
+            pwdOPBox.Size = new Size(835, 35);
             pwdOPBox.TabIndex = 2;
-            pwdOPBox.TextAlignment = ContentAlignment.MiddleLeft;
-            pwdOPBox.Watermark = "输入旧密码(没设密码就留空)";
             // 
             // changePwdButton
             // 
@@ -243,22 +224,23 @@
             changePwdButton.UseVisualStyleBackColor = true;
             changePwdButton.Click += changePwdButton_Click;
             // 
-            // uiSwitch1
+            // isSoundNoticeButton
             // 
-            uiSwitch1.Dock = DockStyle.Fill;
-            uiSwitch1.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            uiSwitch1.Location = new Point(846, 105);
-            uiSwitch1.MinimumSize = new Size(1, 1);
-            uiSwitch1.Name = "uiSwitch1";
-            uiSwitch1.Size = new Size(324, 114);
-            uiSwitch1.TabIndex = 5;
-            uiSwitch1.Text = "uiSwitch1";
+            isSoundNoticeButton.Dock = DockStyle.Fill;
+            isSoundNoticeButton.Font = new Font("Microsoft YaHei UI", 18F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            isSoundNoticeButton.Location = new Point(846, 3);
+            isSoundNoticeButton.Name = "isSoundNoticeButton";
+            isSoundNoticeButton.Size = new Size(324, 96);
+            isSoundNoticeButton.TabIndex = 5;
+            isSoundNoticeButton.Text = "提醒声音-未知";
+            isSoundNoticeButton.UseVisualStyleBackColor = true;
+            isSoundNoticeButton.Click += isSoundNoticeButton_Click;
             // 
             // uiListBox1
             // 
             uiListBox1.Dock = DockStyle.Fill;
             uiListBox1.FormattingEnabled = true;
-            uiListBox1.Items.AddRange(new object[] { "加密", "开发者选项" });
+            uiListBox1.Items.AddRange(new object[] { "加密", "提醒", "开发者选项" });
             uiListBox1.Location = new Point(3, 3);
             uiListBox1.Name = "uiListBox1";
             uiListBox1.Size = new Size(173, 576);
@@ -415,11 +397,10 @@
         private TableLayoutPanel tableLayoutPanel1;
         private TableLayoutPanel tableLayoutPanel2;
         private Label welcomePWD;
-        private Sunny.UI.UIScrollingText scrollingPwdText1;
-        private Sunny.UI.UITextBox pwdOPBox;
-        private Sunny.UI.UITextBox pwdNPBox;
+        private UITextBox pwdOPBox;
+        private UITextBox pwdNPBox;
         private Button changePwdButton;
         private ListBox uiListBox1;
-        private Sunny.UI.UISwitch uiSwitch1;
+        private Button isSoundNoticeButton;
     }
 }
