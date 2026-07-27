@@ -453,79 +453,162 @@ namespace 橘子记事本
             List<string> WrapTextToLines(string text, Font f, int maxWidth, int maxLines)
             {
                 List<string> lines = [];
-                if (string.IsNullOrEmpty(text)) return lines;
-                int idx = 0, len = text.Length;
+
+                if (string.IsNullOrEmpty(text))
+                    return lines;
+
+                int idx = 0;
+                int len = text.Length;
+
                 while (idx < len && lines.Count < maxLines)
                 {
-                    int start = idx;
-                    int lastFit = start;
-                    for (int j = start + 1; j <= len; j++)
+                    int low = idx + 1;
+                    int high = len;
+                    int lastFit = idx;
+
+                    // 二分查找这一行最多能放多少字符
+                    while (low <= high)
                     {
-                        string seg = text.Substring(start, j - start);
-                        if (MeasureTextWidth(seg, f) <= maxWidth) lastFit = j;
-                        else break;
+                        int mid = (low + high) / 2;
+
+                        string seg = text.Substring(idx, mid - idx);
+
+                        if (MeasureTextWidth(seg, f) <= maxWidth)
+                        {
+                            lastFit = mid;
+                            low = mid + 1;
+                        }
+                        else
+                        {
+                            high = mid - 1;
+                        }
                     }
-                    if (lastFit == start) lastFit = Math.Min(start + 1, len);
-                    string line = text.Substring(start, lastFit - start);
+
+                    if (lastFit == idx)
+                        lastFit = Math.Min(idx + 1, len);
+
+                    string line = text.Substring(idx, lastFit - idx);
+
                     idx = lastFit;
+
                     if (lines.Count == maxLines - 1 && idx < len)
                     {
-                        line = TrimToWidthWithThreeDots(line + text.Substring(idx), f, maxWidth);
+                        line = TrimToWidthWithThreeDots(
+                            line + text.Substring(idx),
+                            f,
+                            maxWidth);
+
                         lines.Add(line);
                         return lines;
                     }
+
                     lines.Add(line);
                 }
-                if (idx < len && lines.Count > 0)
-                {
-                    int last = lines.Count - 1;
-                    lines[last] = TrimToWidthWithThreeDots(lines[last] + text.Substring(idx), f, maxWidth);
-                }
+
                 return lines;
             }
-
-            // 使用缓存以避免每次重绘都进行昂贵测量
             if (!_layoutValid || _cachedAvailWidth != availWidth || _cachedBodyHeight != availHeight)
             {
                 // 清理旧字体
                 try { if (_cachedNoteFont != null && _cachedNoteFont != Font) _cachedNoteFont.Dispose(); } catch { }
                 try { if (_cachedTitleFont != null && _cachedTitleFont != Font) _cachedTitleFont.Dispose(); } catch { }
+
                 _cachedLines.Clear();
 
-                // 重新计算字号和换行
                 _cachedAvailWidth = availWidth;
                 _cachedBodyHeight = availHeight;
+
+                string title = Title ?? string.Empty;
+                string note = NoteText ?? string.Empty;
+
+                // 仅用于测量字号，没必要测全文
+                const int PreviewLength = 500;
+                string previewText = note.Length > PreviewLength ? note.Substring(0, PreviewLength) : note;
+
                 float chosenNote = 8f;
                 float chosenTitle = 16f;
-                for (float s = 120f; s >= 8f; s -= 1f)
-                {
-                    using (Font testNote = new Font(Font.FontFamily, s, Font.Style))
-                    using (Font testTitle = new Font(Font.FontFamily, Math.Min(s * 2f, 120f), FontStyle.Bold))
-                    {
-                        int titleW = MeasureTextWidth(Title ?? string.Empty, testTitle);
-                        if (titleW > availWidth) continue;
 
-                        Size noteMeasured = TextRenderer.MeasureText(NoteText ?? string.Empty, testNote, new Size(availWidth, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl | TextFormatFlags.NoPadding);
-                        double approxLines = Math.Ceiling((double)noteMeasured.Height / testNote.Height);
-                        if (approxLines <= 3 && noteMeasured.Height <= availHeight - testTitle.Height + 1)
-                        {
-                            chosenNote = s;
-                            chosenTitle = Math.Min(s * 2f, 120f);
-                            break;
-                        }
+                // 二分搜索最大可用字号
+                float low = 8f;
+                float high = 120f;
+
+                while (low <= high)
+                {
+                    float mid = (float)Math.Floor((low + high) / 2f);
+
+                    using Font testNote = new Font(Font.FontFamily, mid, Font.Style);
+                    using Font testTitle = new Font(Font.FontFamily, Math.Min(mid * 2f, 120f), FontStyle.Bold);
+
+                    // 标题放不下，字号一定太大
+                    if (MeasureTextWidth(title, testTitle) > availWidth)
+                    {
+                        high = mid - 1;
+                        continue;
+                    }
+
+                    Size noteMeasured = TextRenderer.MeasureText(
+                        previewText,
+                        testNote,
+                        new Size(availWidth, int.MaxValue),
+                        TextFormatFlags.WordBreak |
+                        TextFormatFlags.TextBoxControl |
+                        TextFormatFlags.NoPadding);
+
+                    double approxLines = Math.Ceiling((double)noteMeasured.Height / testNote.Height);
+
+                    if (approxLines <= 3 &&
+                        noteMeasured.Height <= availHeight - testTitle.Height + 1)
+                    {
+                        chosenNote = mid;
+                        chosenTitle = Math.Min(mid * 2f, 120f);
+
+                        low = mid + 1f;     // 还能再大
+                    }
+                    else
+                    {
+                        high = mid - 1f;    // 太大了
                     }
                 }
 
                 _cachedNoteSize = chosenNote;
                 _cachedTitleSize = chosenTitle;
-                try { _cachedNoteFont = new Font(Font.FontFamily, _cachedNoteSize, Font.Style); } catch { _cachedNoteFont = Font; }
-                try { _cachedTitleFont = new Font(Font.FontFamily, _cachedTitleSize, FontStyle.Bold); } catch { _cachedTitleFont = Font; }
 
-                // 准备换行结果
-                _cachedLines = WrapTextToLines(NoteText ?? string.Empty, _cachedNoteFont, availWidth, 3);
-                _cachedTitleHeight = TextRenderer.MeasureText(TrimToWidthWithThreeDots(Title ?? string.Empty, _cachedTitleFont, availWidth), _cachedTitleFont, new Size(availWidth, int.MaxValue), TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix).Height;
+                try
+                {
+                    _cachedNoteFont = new Font(Font.FontFamily, _cachedNoteSize, Font.Style);
+                }
+                catch
+                {
+                    _cachedNoteFont = Font;
+                }
 
-                _cachedLineHeight = TextRenderer.MeasureText("A", _cachedNoteFont, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.SingleLine | TextFormatFlags.NoPadding | TextFormatFlags.NoPrefix).Height;
+                try
+                {
+                    _cachedTitleFont = new Font(Font.FontFamily, _cachedTitleSize, FontStyle.Bold);
+                }
+                catch
+                {
+                    _cachedTitleFont = Font;
+                }
+
+                // 真正生成显示内容（这里仍然使用全文）
+                _cachedLines = WrapTextToLines(note, _cachedNoteFont, availWidth, 3);
+
+                _cachedTitleHeight = TextRenderer.MeasureText(
+                    TrimToWidthWithThreeDots(title, _cachedTitleFont, availWidth),
+                    _cachedTitleFont,
+                    new Size(availWidth, int.MaxValue),
+                    TextFormatFlags.SingleLine |
+                    TextFormatFlags.NoPadding |
+                    TextFormatFlags.NoPrefix).Height;
+
+                _cachedLineHeight = TextRenderer.MeasureText(
+                    "A",
+                    _cachedNoteFont,
+                    new Size(int.MaxValue, int.MaxValue),
+                    TextFormatFlags.SingleLine |
+                    TextFormatFlags.NoPadding |
+                    TextFormatFlags.NoPrefix).Height;
 
                 _layoutValid = true;
             }

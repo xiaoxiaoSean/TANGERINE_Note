@@ -1375,7 +1375,6 @@ namespace 橘子记事本
                 tWritePage.AutoScroll = true;
             }
         }
-
         async void refreshNotes()
         {
             // 取消正在进行的搜索，避免竞态 (workbuddy-20260727)
@@ -1457,10 +1456,10 @@ namespace 橘子记事本
             }
             bool isFirstNote = true;
             int nowNoteY = tWritePage.Height / 5;
-            foreach (var note in notesToShow)
+            for (int i = 0; i < notesToShow.Length; i++)
             {
-                note.Title = twtw.titles[Array.IndexOf(notesToShow, note)];
-                note.NoteText = twtw.notes[Array.IndexOf(notesToShow, note)];
+                notesToShow[i].Title = twtw.titles[i];
+                notesToShow[i].NoteText = twtw.notes[i];
             }
             foreach (var note in notesToShow)
             {
