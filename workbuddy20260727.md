@@ -1174,3 +1174,211 @@ private static void ShowTip(string text, Color backColor, Color foreColor, int d
 已成功生成。
     0 个错误
 ```
+
+---
+
+## 十七、修复密码输入框焦点问题（第六轮改动）
+
+### 17.1 问题描述
+
+程序启动弹出密码输入对话框（`UIInputForm`）后，文本框没有获得键盘焦点，用户需要手动点击文本框才能输入。
+
+### 17.2 之前的错误尝试
+
+第三轮中误以为 `UIInputForm` 是 SunnyUI 的类，去查看 SunnyUI 源码，发现"Shown 事件中只有 `SelectAll()` 没有 `Focus()`"。但项目已经完全脱离 SunnyUI，`UIInputForm` 是自实现的（在 `tControl.cs` 中），其构造函数的 `Shown` 事件中**已经有 `Focus()` + `SelectAll()`**。
+
+### 17.3 真正根因
+
+查看自实现的 `UIInputForm`（`tControl.cs` 第472行）：
+
+```csharp
+// 原来的 Shown 事件
+Shown += (s, e) =>
+{
+    _editor.Focus();       // ← 直接调用，但 ShowDialog 的默认焦点行为会覆盖它
+    _editor.SelectAll();
+};
+```
+
+`Shown` 事件在窗体首次显示后触发，但 `ShowDialog()` 内部在 `Shown` 事件之后还有默认的焦点设置行为（可能将焦点设到 `AcceptButton`）。直接在 `Shown` 事件中调用 `Focus()` 会被后续的默认焦点行为覆盖。
+
+同时 `ShowPasswordDialog` 方法中又叠加了第二个 `Shown` 事件做同样的事，双重叠加但仍无法解决时序问题。
+
+### 17.4 修复
+
+#### 17.4.1 修改 UIInputForm 的 Shown 事件（tControl.cs）
+
+使用 `BeginInvoke` 延迟焦点设置，确保在 `ShowDialog()` 的默认焦点行为之后执行：
+
+```csharp
+// 修复后 (workbuddy-20260727)
+Shown += (s, e) =>
+{
+    this.BeginInvoke((Action)(() =>
+    {
+        try
+        {
+            _editor.Focus();
+            _editor.SelectAll();
+        }
+        catch { }
+    }));
+};
+```
+
+`BeginInvoke` 将焦点设置操作排入消息队列，在 `ShowDialog()` 的默认焦点处理完成后才执行，从而确保焦点正确设置到文本框。
+
+#### 17.4.2 精简 ShowPasswordDialog（MainForm.cs）
+
+删除多余的 `Shown` 事件（`UIInputForm` 构造函数中已处理），删除基于错误假设的过时注释：
+
+```csharp
+private bool ShowPasswordDialog(ref string value, string desc, int maxLength)
+{
+    using var frm = new UIInputForm();
+    frm.Text = UIStyles.CurrentResources.InputTitle;
+    frm.Label.Text = desc;
+    frm.CheckInputEmpty = false;
+    frm.Editor.PasswordChar = '*';
+    frm.Editor.MaxLength = maxLength;
+    frm.Style = UIStyle.DarkBlue;
+    frm.ShowInTaskbar = false;
+    frm.TopMost = true;
+    frm.StartPosition = FormStartPosition.CenterScreen;
+
+    // 焦点设置已在 UIInputForm 构造函数的 Shown 事件中通过 BeginInvoke 处理 (workbuddy-20260727)
+    try { frm.Render(); } catch { }
+    if (frm.ShowDialog() == DialogResult.OK)
+    {
+        value = frm.Editor.Text;
+        return true;
+    }
+    return false;
+}
+```
+
+### 17.5 BeginInvoke 方案失败，改用 ActiveControl + Timer 方案
+
+`BeginInvoke` 方案仍然不 work：`ShowDialog()` 的默认焦点行为在消息循环中持续覆盖 `BeginInvoke` 排队的回调。
+
+**最终方案**：三重保险——`ActiveControl` + `Load` 事件 + `Shown` 事件用 `Timer` 延迟：
+
+```csharp
+public UIInputForm()
+{
+    // ... 创建控件 ...
+
+    // ① 构造函数中设置 ActiveControl：ShowDialog 显示窗体时会将焦点设到 ActiveControl
+    this.ActiveControl = _editor;
+
+    // ② Load 事件：句柄已创建，再次确保 ActiveControl 指向文本框
+    this.Load += (s, e) =>
+    {
+        this.ActiveControl = _editor;
+    };
+
+    // ③ Shown 事件：用 Timer 延迟 10ms 设置焦点
+    // Timer 的 Tick 在消息循环下一次循环中执行，比 BeginInvoke 更可靠
+    Shown += (s, e) =>
+    {
+        this.ActiveControl = _editor;
+        var focusTimer = new System.Windows.Forms.Timer { Interval = 10 };
+        focusTimer.Tick += (s2, e2) =>
+        {
+            focusTimer.Stop();
+            focusTimer.Dispose();
+            try
+            {
+                _editor.Focus();
+                _editor.SelectAll();
+            }
+            catch { }
+        };
+        focusTimer.Start();
+    };
+}
+```
+
+**为什么 Timer 比 BeginInvoke 更可靠**：
+
+| 机制 | 执行时机 | 可靠性 |
+|------|---------|--------|
+| 直接 `Focus()` | `Shown` 事件中同步执行 | 被 `ShowDialog` 后续默认焦点覆盖 |
+| `BeginInvoke` | 排入消息队列末尾，但可能在 `ShowDialog` 焦点设置之前处理 | 不可靠 |
+| `Timer(10ms)` | 在消息循环下一次循环中执行，确保在 `ShowDialog` 所有同步焦点设置之后 | 可靠 ✓ |
+
+**三层保险的作用**：
+
+1. `ActiveControl`（构造函数）：告诉 `ShowDialog` 应该将焦点给到哪个控件
+2. `Load` 事件中 `ActiveControl`：句柄已创建时再次确认
+3. `Shown` 事件中 `Timer`：延迟 10ms 后用 `Focus()` 强制设置键盘焦点，确保在所有默认焦点行为之后执行
+
+### 17.6 上述方案全部失败——真正根因
+
+`ActiveControl` + `Load` + `Timer` 三重保险仍然不 work。
+
+**用户提示**："你要把焦点移到那个输入密码的小窗口上"——问题不在于文本框焦点，而在于**对话框窗口本身没有获得 Windows 前台焦点**。
+
+**真正根因**：splash 窗口在独立线程上运行（`MainForm` 构造函数中 `splashThread.Start()`），在 `Form1_Load` 中调用 `ShowPasswordDialog` 时 splash 还没有关闭（splash 在 `Form1_Load` 第597行才关闭，而密码对话框在第502/528行就弹出了）。splash 窗口持有 Windows 前台焦点，导致 `ShowDialog()` 显示的对话框虽然是 `TopMost` 但无法接收键盘输入——在 Windows 中只有前台窗口才能获得键盘输入。
+
+之前的所有方案（`Focus()`、`BeginInvoke`、`ActiveControl`、`Timer`）都是在设置**文本框焦点**，但对话框窗口本身不是前台窗口，文本框自然无法获得键盘输入。
+
+### 17.7 最终修复：用 Win32 API 强制夺取前台焦点
+
+在 `UIInputForm` 中添加 Win32 API 声明，在 `Shown` 事件中用 `SetForegroundWindow` + `SwitchToThisWindow` 强制将对话框设为前台窗口：
+
+```csharp
+public class UIInputForm : Form
+{
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern void SwitchToThisWindow(IntPtr hWnd, bool fAltTab);
+
+    // ... 构造函数 ...
+
+    Shown += (s, e) =>
+    {
+        // 强制将对话框设为前台窗口
+        this.Activate();
+        if (this.IsHandleCreated)
+        {
+            SetForegroundWindow(this.Handle);
+            SwitchToThisWindow(this.Handle, true);
+        }
+        this.ActiveControl = _editor;
+
+        // Timer 延迟设置文本框焦点
+        var focusTimer = new System.Windows.Forms.Timer { Interval = 10 };
+        focusTimer.Tick += (s2, e2) =>
+        {
+            focusTimer.Stop();
+            focusTimer.Dispose();
+            this.Activate();
+            SetForegroundWindow(this.Handle);
+            _editor.Focus();
+            _editor.SelectAll();
+        };
+        focusTimer.Start();
+    };
+}
+```
+
+**`SetForegroundWindow` vs `Activate()` 的区别**：
+
+| 方法 | 作用 | 能否跨线程夺取前台焦点 |
+|------|------|----------------------|
+| `Form.Activate()` | 请求激活窗口 | 不一定，Windows 可能拒绝非前台线程的请求 |
+| `SetForegroundWindow` | Win32 API，强制设置前台窗口 | 能，绕过 .NET 层直接调用 Windows |
+| `SwitchToThisWindow` | Win32 API，切换到指定窗口 | 能，类似 Alt+Tab 效果 |
+
+### 17.8 最终构建结果
+
+```
+已成功生成。
+    0 个错误
+``````
+已成功生成。
+    0 个错误
+```

@@ -380,6 +380,13 @@ namespace 橘子记事本
     // ====================================================================
     public class UIInputForm : Form
     {
+        // Win32 API：强制设置前台窗口 (workbuddy-20260727)
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern void SwitchToThisWindow(IntPtr hWnd, bool fAltTab);
+
         private readonly Label _label;
         private readonly UITextBox _editor;
         private readonly Button _btnOK;
@@ -468,11 +475,46 @@ namespace 橘子记事本
             AcceptButton = _btnOK;
             CancelButton = _btnCancel;
 
-            // 窗体显示后自动选中文本框 (workbuddy-20260727)
+            // 设置初始活动控件 (workbuddy-20260727)
+            this.ActiveControl = _editor;
+
+            // Load 事件：句柄已创建，再次确保 ActiveControl 指向文本框
+            this.Load += (s, e) =>
+            {
+                this.ActiveControl = _editor;
+            };
+
+            // 窗体显示后强制将对话框设为前台窗口，并设置文本框焦点 (workbuddy-20260727)
+            // 问题根因：splash 窗口在独立线程运行，可能持有 Windows 前台焦点，
+            // 导致对话框虽显示但无法接收键盘输入。必须用 SetForegroundWindow 强制夺取前台焦点。
             Shown += (s, e) =>
             {
-                _editor.Focus();
-                _editor.SelectAll();
+                // 强制将对话框设为前台窗口 (workbuddy-20260727)
+                this.Activate();
+                if (this.IsHandleCreated)
+                {
+                    try { SetForegroundWindow(this.Handle); } catch { }
+                    try { SwitchToThisWindow(this.Handle, true); } catch { }
+                }
+                this.ActiveControl = _editor;
+
+                // 用 Timer 延迟设置文本框焦点，确保在窗口前台化之后执行
+                var focusTimer = new System.Windows.Forms.Timer { Interval = 10 };
+                focusTimer.Tick += (s2, e2) =>
+                {
+                    focusTimer.Stop();
+                    focusTimer.Dispose();
+                    try
+                    {
+                        // 再次确保窗口在前台
+                        this.Activate();
+                        SetForegroundWindow(this.Handle);
+                        _editor.Focus();
+                        _editor.SelectAll();
+                    }
+                    catch { }
+                };
+                focusTimer.Start();
             };
         }
 

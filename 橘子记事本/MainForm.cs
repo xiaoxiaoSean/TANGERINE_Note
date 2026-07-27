@@ -1118,11 +1118,8 @@ namespace 橘子记事本
         }
         /// <summary>
         /// 显示密码输入对话框并自动选中文本框 (workbuddy-20260727)
-        /// 直接实例化 SunnyUI 的 UIInputForm（而非使用静态方法 UIInputDialog.ShowInputPasswordDialog），
-        /// 以便在 Shown 事件中直接访问 Editor 属性并设置焦点。
-        /// UIInputForm 源码中已有 Shown 事件调用 edit.SelectAll()，但缺少 Focus()，
-        /// 导致文本框虽有选中文本但未获得键盘焦点，用户输入不会进入文本框。
-        /// 此方法在 Shown 中补充 Focus()，确保用户可直接打字输入。
+        /// 直接实例化 UIInputForm，其构造函数中已通过 Shown 事件 + BeginInvoke
+        /// 延迟设置文本框焦点，确保 ShowDialog 的默认焦点行为不会覆盖。
         /// </summary>
         /// <param name="value">传入默认值，返回用户输入的密码</param>
         /// <param name="desc">对话框描述文字</param>
@@ -1130,9 +1127,8 @@ namespace 橘子记事本
         /// <returns>用户点击确定返回 true，取消返回 false</returns>
         private bool ShowPasswordDialog(ref string value, string desc, int maxLength)
         {
-            // 直接实例化 UIInputForm（public sealed 类，有 public 无参构造函数）(workbuddy-20260727)
+            // 直接实例化 UIInputForm (workbuddy-20260727)
             using var frm = new UIInputForm();
-            // 设置对话框基本属性，与原 ShowInputPasswordDialog 静态方法内部逻辑一致
             frm.Text = UIStyles.CurrentResources.InputTitle;
             frm.Label.Text = desc;
             frm.CheckInputEmpty = false;
@@ -1143,19 +1139,7 @@ namespace 橘子记事本
             frm.TopMost = true;
             frm.StartPosition = FormStartPosition.CenterScreen;
 
-            // 对话框显示后自动选中文本框并设置键盘焦点 (workbuddy-20260727)
-            // UIInputForm 自身的 Shown 事件已调用 edit.SelectAll()，但未 Focus()
-            // 此处补充 Focus()，确保键盘输入直接进入文本框
-            frm.Shown += (s, e) =>
-            {
-                try
-                {
-                    frm.Editor.Focus();
-                    frm.Editor.SelectAll();
-                }
-                catch { }
-            };
-
+            // 焦点设置已在 UIInputForm 构造函数的 Shown 事件中通过 BeginInvoke 处理 (workbuddy-20260727)
             try { frm.Render(); } catch { }
             if (frm.ShowDialog() == DialogResult.OK)
             {
