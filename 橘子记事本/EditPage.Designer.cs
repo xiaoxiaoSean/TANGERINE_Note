@@ -30,8 +30,11 @@
         {
             tableLayoutPanel1 = new TableLayoutPanel();
             titleEditBox = new TextBox();
-            editNoteBox = new TextBox();
+            tableLayoutPanel2 = new TableLayoutPanel();
+            editNoteBox = new SyncRichTextBox();
+            lineNumBox = new RichTextBox();
             tableLayoutPanel1.SuspendLayout();
+            tableLayoutPanel2.SuspendLayout();
             SuspendLayout();
             // 
             // tableLayoutPanel1
@@ -39,47 +42,74 @@
             tableLayoutPanel1.ColumnCount = 1;
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.Controls.Add(titleEditBox, 0, 0);
-            tableLayoutPanel1.Controls.Add(editNoteBox, 0, 1);
+            tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 0, 1);
             tableLayoutPanel1.Dock = DockStyle.Fill;
             tableLayoutPanel1.Location = new Point(0, 0);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
             tableLayoutPanel1.RowCount = 2;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 80F));
-            tableLayoutPanel1.Size = new Size(1489, 726);
+            tableLayoutPanel1.Size = new Size(1260, 622);
             tableLayoutPanel1.TabIndex = 0;
             // 
             // titleEditBox
             // 
             titleEditBox.Dock = DockStyle.Fill;
-            // 使用通用无衬线字体以避免在缺少特定系统字体时抛出 GDI+ 错误，保留字号不变
-            titleEditBox.Font = new Font(FontFamily.GenericSansSerif, 20.1428585F, FontStyle.Regular, GraphicsUnit.Point);
+            titleEditBox.Font = new Font("Microsoft Sans Serif", 20.1428585F);
             titleEditBox.Location = new Point(3, 3);
             titleEditBox.Multiline = true;
             titleEditBox.Name = "titleEditBox";
             titleEditBox.ScrollBars = ScrollBars.Both;
-            titleEditBox.Size = new Size(1483, 139);
+            titleEditBox.Size = new Size(1254, 118);
             titleEditBox.TabIndex = 0;
+            titleEditBox.WordWrap = false;
+            // 
+            // tableLayoutPanel2
+            // 
+            tableLayoutPanel2.ColumnCount = 2;
+            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 6.37958527F));
+            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 93.6204147F));
+            tableLayoutPanel2.Controls.Add(editNoteBox, 1, 0);
+            tableLayoutPanel2.Controls.Add(lineNumBox, 0, 0);
+            tableLayoutPanel2.Dock = DockStyle.Fill;
+            tableLayoutPanel2.Location = new Point(3, 127);
+            tableLayoutPanel2.Name = "tableLayoutPanel2";
+            tableLayoutPanel2.RowCount = 1;
+            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            tableLayoutPanel2.Size = new Size(1254, 492);
+            tableLayoutPanel2.TabIndex = 1;
             // 
             // editNoteBox
             // 
             editNoteBox.Dock = DockStyle.Fill;
-            editNoteBox.Location = new Point(3, 148);
-            editNoteBox.Multiline = true;
+            editNoteBox.Location = new Point(83, 3);
             editNoteBox.Name = "editNoteBox";
-            editNoteBox.ScrollBars = ScrollBars.Both;
-            editNoteBox.Size = new Size(1483, 575);
+            editNoteBox.Size = new Size(1168, 486);
             editNoteBox.TabIndex = 1;
+            editNoteBox.Text = "";
+            editNoteBox.WordWrap = false;
+            // 
+            // lineNumBox
+            // 
+            lineNumBox.Dock = DockStyle.Fill;
+            lineNumBox.Location = new Point(3, 3);
+            lineNumBox.Name = "lineNumBox";
+            lineNumBox.ScrollBars = RichTextBoxScrollBars.None;
+            lineNumBox.Size = new Size(74, 486);
+            lineNumBox.TabIndex = 2;
+            lineNumBox.Text = "";
             // 
             // EditPage
             // 
-            AutoScaleDimensions = new SizeF(13F, 28F);
+            AutoScaleDimensions = new SizeF(11F, 24F);
             AutoScaleMode = AutoScaleMode.Font;
             Controls.Add(tableLayoutPanel1);
             Name = "EditPage";
-            Size = new Size(1489, 726);
+            Size = new Size(1260, 622);
+            Load += EditPage_Load;
             tableLayoutPanel1.ResumeLayout(false);
             tableLayoutPanel1.PerformLayout();
+            tableLayoutPanel2.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -87,6 +117,8 @@
 
         private TableLayoutPanel tableLayoutPanel1;
         private TextBox titleEditBox;
-        private TextBox editNoteBox;
+        private TableLayoutPanel tableLayoutPanel2;
+        private SyncRichTextBox editNoteBox;
+        private RichTextBox lineNumBox;
     }
 }

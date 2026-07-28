@@ -344,11 +344,14 @@
             // 
             // oprationBox3
             // 
+            oprationBox3.Image = Properties.Resources.search_replace;
             oprationBox3.Location = new Point(314, 3);
             oprationBox3.Name = "oprationBox3";
             oprationBox3.Size = new Size(137, 139);
+            oprationBox3.SizeMode = PictureBoxSizeMode.Zoom;
             oprationBox3.TabIndex = 2;
             oprationBox3.TabStop = false;
+            oprationBox3.Click += oprationBox3_Click;
             // 
             // MainForm
             // 

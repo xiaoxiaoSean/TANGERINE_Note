@@ -456,6 +456,7 @@ namespace 橘子记事本
         //Form1开始加载-------------------------------------------------//
         private async void Form1_Load(object sender, EventArgs e)//tw=tWrite
         {
+            oprationBox3.Visible = false;
             try
             {
                 if (File.Exists(Path.Combine(Application.StartupPath, "tw.tw")))
@@ -1699,6 +1700,17 @@ namespace 橘子记事本
             {
                 isSoundNoticeButton.Text = "提醒声音-开启";
                 twtw.isSoundBeforeNotice = true;
+            }
+        }
+        private void oprationBox3_Click(object sender, EventArgs e)
+        {
+            if (isEditing)
+            {
+
+            }
+            else
+            {
+                return;
             }
         }
     }

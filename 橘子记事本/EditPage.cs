@@ -39,5 +39,10 @@ namespace 橘子记事本
             titleEditBox.Text = "";
             editNoteBox.Text = "";
         }
+        private void EditPage_Load(object sender, EventArgs e)
+        {
+            lineNumBox.ScrollBars = RichTextBoxScrollBars.None;
+
+        }
     }
 }
