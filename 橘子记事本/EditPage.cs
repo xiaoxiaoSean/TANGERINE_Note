@@ -1,4 +1,6 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
+using System.Text;
 
 namespace 橘子记事本
 {
@@ -27,8 +29,7 @@ namespace 橘子记事本
             try
             {
                 titleEditBox.Text = title;
-                editNoteBox.Text = note;
-                loadlineNumBox();
+                LoadLineNumBox();
             }
             catch { }
         }
@@ -49,39 +50,31 @@ namespace 橘子记事本
         {
             lineNumBox.ScrollBars = RichTextBoxScrollBars.None;
         }
-        void loadlineNumBox()
+        void LoadLineNumBox()
         {
-            lineNumBox.Clear();            
-            if (note != null)
+            lineNumBox.SuspendLayout();
+
+            lineNumBox.Text ="";
+
+            lineNumBox.ResumeLayout();
+            int lineCount = editNoteBox.GetLineFromCharIndex(editNoteBox.TextLength) + 1;
+            lastLineCount = lineCount;
+            StringBuilder sb = new(lineCount * 3);
+            for (int i = 1; i <= lineCount; i++)
             {
-                int count = editNoteBox.Text.Count(n => n == '\n');
-                lastLineCount = count;
-                int i = 0;
-                for (i = 1; i < count; i++)
-                {
-                    lineNumBox.AppendText(i.ToString() + "\n");
-                }
-                if (note[^1] != '\n')
-                {
-                    i++;
-                    lineNumBox.AppendText(i.ToString() + "\n");
-                }//补最后一行
-                i++;
-                lineNumBox.AppendText(i.ToString() + "\n");//补第一行
+                sb.Append(i);
+                sb.Append('\n');
             }
-
+            lineNumBox.Text = sb.ToString();
         }
-
         private void editNoteBox_TextChanged(object sender, EventArgs e)
         {
             int lineCount = editNoteBox.Lines.Length;
-
             if (lineCount != lastLineCount)
             {
                 lastLineCount = lineCount;
-               loadlineNumBox();
+                LoadLineNumBox();
             }
-            //TODO:修复行数更改时，字体变化的bug
         }
     }
 }

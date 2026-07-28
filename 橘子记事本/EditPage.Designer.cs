@@ -82,6 +82,7 @@
             // editNoteBox
             // 
             editNoteBox.Dock = DockStyle.Fill;
+            editNoteBox.Font = new Font("Arial Narrow", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             editNoteBox.Location = new Point(83, 3);
             editNoteBox.Name = "editNoteBox";
             editNoteBox.Size = new Size(1168, 486);
