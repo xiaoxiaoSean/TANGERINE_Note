@@ -88,6 +88,7 @@
             editNoteBox.TabIndex = 1;
             editNoteBox.Text = "";
             editNoteBox.WordWrap = false;
+            editNoteBox.TextChanged += editNoteBox_TextChanged;
             // 
             // lineNumBox
             // 

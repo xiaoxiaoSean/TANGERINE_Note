@@ -15,6 +15,7 @@ namespace 橘子记事本
             InitializeComponent();
             EdId = -1;
         }
+        int lastLineCount = 0;
         public void LoadFromValues(string t, string n, int id)
         {
             title = t ?? string.Empty;
@@ -22,6 +23,7 @@ namespace 橘子记事本
             EdId = id;
             lineNumBox.Partner = editNoteBox;
             editNoteBox.Partner = lineNumBox;
+            editNoteBox.Text = note;
             try
             {
                 titleEditBox.Text = title;
@@ -41,6 +43,7 @@ namespace 橘子记事本
             note = null;
             titleEditBox.Text = "";
             editNoteBox.Text = "";
+            lineNumBox.Clear();
         }
         private void EditPage_Load(object sender, EventArgs e)
         {
@@ -48,15 +51,17 @@ namespace 橘子记事本
         }
         void loadlineNumBox()
         {
+            lineNumBox.Clear();            
             if (note != null)
             {
-                int count = note.Count(n => n == '\n');
+                int count = editNoteBox.Text.Count(n => n == '\n');
+                lastLineCount = count;
                 int i = 0;
                 for (i = 1; i < count; i++)
                 {
                     lineNumBox.AppendText(i.ToString() + "\n");
                 }
-                if (note[^1]!='\n')
+                if (note[^1] != '\n')
                 {
                     i++;
                     lineNumBox.AppendText(i.ToString() + "\n");
@@ -65,6 +70,18 @@ namespace 橘子记事本
                 lineNumBox.AppendText(i.ToString() + "\n");//补第一行
             }
 
+        }
+
+        private void editNoteBox_TextChanged(object sender, EventArgs e)
+        {
+            int lineCount = editNoteBox.Lines.Length;
+
+            if (lineCount != lastLineCount)
+            {
+                lastLineCount = lineCount;
+               loadlineNumBox();
+            }
+            //TODO:修复行数更改时，字体变化的bug
         }
     }
 }
