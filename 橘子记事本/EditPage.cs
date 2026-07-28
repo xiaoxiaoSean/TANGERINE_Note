@@ -20,10 +20,13 @@ namespace 橘子记事本
             title = t ?? string.Empty;
             note = n ?? string.Empty;
             EdId = id;
+            lineNumBox.Partner = editNoteBox;
+            editNoteBox.Partner = lineNumBox;
             try
             {
                 titleEditBox.Text = title;
                 editNoteBox.Text = note;
+                loadlineNumBox();
             }
             catch { }
         }
@@ -42,6 +45,25 @@ namespace 橘子记事本
         private void EditPage_Load(object sender, EventArgs e)
         {
             lineNumBox.ScrollBars = RichTextBoxScrollBars.None;
+        }
+        void loadlineNumBox()
+        {
+            if (note != null)
+            {
+                int count = note.Count(n => n == '\n');
+                int i = 0;
+                for (i = 1; i < count; i++)
+                {
+                    lineNumBox.AppendText(i.ToString() + "\n");
+                }
+                if (note[^1]!='\n')
+                {
+                    i++;
+                    lineNumBox.AppendText(i.ToString() + "\n");
+                }//补最后一行
+                i++;
+                lineNumBox.AppendText(i.ToString() + "\n");//补第一行
+            }
 
         }
     }

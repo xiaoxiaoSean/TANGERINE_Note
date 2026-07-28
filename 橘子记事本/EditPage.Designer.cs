@@ -32,7 +32,7 @@
             titleEditBox = new TextBox();
             tableLayoutPanel2 = new TableLayoutPanel();
             editNoteBox = new SyncRichTextBox();
-            lineNumBox = new RichTextBox();
+            lineNumBox = new SyncRichTextBox();
             tableLayoutPanel1.SuspendLayout();
             tableLayoutPanel2.SuspendLayout();
             SuspendLayout();
@@ -119,6 +119,6 @@
         private TextBox titleEditBox;
         private TableLayoutPanel tableLayoutPanel2;
         private SyncRichTextBox editNoteBox;
-        private RichTextBox lineNumBox;
+        private SyncRichTextBox lineNumBox;
     }
 }
