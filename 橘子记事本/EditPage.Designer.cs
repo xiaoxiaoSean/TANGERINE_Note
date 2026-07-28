@@ -94,6 +94,7 @@
             // lineNumBox
             // 
             lineNumBox.Dock = DockStyle.Fill;
+            lineNumBox.Font = new Font("Arial Narrow", 12F, FontStyle.Regular, GraphicsUnit.Point, 0);
             lineNumBox.Location = new Point(3, 3);
             lineNumBox.Name = "lineNumBox";
             lineNumBox.ScrollBars = RichTextBoxScrollBars.None;

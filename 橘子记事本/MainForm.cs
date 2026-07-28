@@ -2,6 +2,7 @@ using System.Media;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
+//MainForm,原Form1
 //using CredentialManagement;
 //主要部分由Sean ren完成
 //部分由workbuddy(提醒功能部分),gemini(自适应文字),ChatGPT(splash窗口部分，加密功能)，Github Copilot(笔记卡片动画，splash窗口部分)完成
@@ -453,6 +454,7 @@ namespace 橘子记事本
         private readonly object _notesAnimationLock = new object();
         //--------------------------------------------------------------//
         //公用对象声明结束----------------//
+        //MainForm,原Form1
         //Form1开始加载-------------------------------------------------//
         private async void Form1_Load(object sender, EventArgs e)//tw=tWrite
         {
@@ -508,7 +510,11 @@ namespace 橘子记事本
                             {
 
                             }
-                            ShowPasswordDialog(ref pwd, "输入解密密码以解密,只能英文，数字", 50); // 直接实例化UIInputForm，Shown事件自动选中文本框 (workbuddy-20260727)
+                            if (!ShowPasswordDialog(ref pwd, "输入解密密码以解密,只能英文，数字", 50))// 直接实例化UIInputForm，Shown事件自动选中文本框 (workbuddy-20260727)
+                            {
+                                Application.Exit();
+                                Environment.Exit(0);//用户取消，关闭程序
+                            }                             
                             DecryptFile();
                         }
                         catch (CryptographicException)
@@ -534,7 +540,11 @@ namespace 橘子记事本
                         string json = JsonSerializer.Serialize(twtw);
                         pwd = "";
                     pwdna:
-                        ShowPasswordDialog(ref pwd, "欢迎，输入加密密码，不想输入密码可留空,只能英文，数字", 50); // 直接实例化UIInputForm，Shown事件自动选中文本框 (workbuddy-20260727)
+                        if ( ShowPasswordDialog(ref pwd, "欢迎，输入加密密码，不想输入密码可留空,只能英文，数字", 50)) // 直接实例化UIInputForm，Shown事件自动选中文本框 (workbuddy-20260727)
+                        {
+                            Application.Exit();
+                            Environment.Exit(0);//用户取消，关闭程序
+                        }
                         if (!IsAsciiLetterOrNumber(pwd))
                         {
                             MessageBox.Show("只能英文，数字\n请重试", "橘子记事本");

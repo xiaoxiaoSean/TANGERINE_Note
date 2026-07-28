@@ -415,8 +415,8 @@ namespace 橘子记事本
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            Width = 400;
-            Height = 180;
+            Width = Screen.PrimaryScreen.Bounds.Width/5;
+            Height = Screen.PrimaryScreen.Bounds.Height/5;
 
             // 创建描述标签
             _label = new Label
