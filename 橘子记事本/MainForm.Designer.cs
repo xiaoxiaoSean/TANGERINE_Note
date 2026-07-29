@@ -67,254 +67,138 @@
             // 
             // mainPanel
             // 
-            mainPanel.ColumnCount = 1;
-            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 17F));
+            resources.ApplyResources(mainPanel, "mainPanel");
             mainPanel.Controls.Add(mainTab, 0, 1);
             mainPanel.Controls.Add(topPanel, 0, 0);
-            mainPanel.Dock = DockStyle.Fill;
-            mainPanel.Location = new Point(0, 0);
             mainPanel.Name = "mainPanel";
-            mainPanel.RowCount = 2;
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 20F));
-            mainPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 80F));
-            mainPanel.Size = new Size(1378, 788);
-            mainPanel.TabIndex = 0;
             // 
             // mainTab
             // 
+            resources.ApplyResources(mainTab, "mainTab");
             mainTab.Controls.Add(HomePage);
             mainTab.Controls.Add(tWritePage);
             mainTab.Controls.Add(tNoticePage);
             mainTab.Controls.Add(settingPage);
-            mainTab.Dock = DockStyle.Fill;
-            mainTab.Location = new Point(3, 160);
             mainTab.Name = "mainTab";
             mainTab.SelectedIndex = 0;
-            mainTab.Size = new Size(1372, 625);
-            mainTab.TabIndex = 0;
             mainTab.SelectedIndexChanged += mainTab_SelectedIndexChanged;
             // 
             // HomePage
             // 
+            resources.ApplyResources(HomePage, "HomePage");
             HomePage.BackColor = SystemColors.GradientActiveCaption;
-            HomePage.Location = new Point(4, 33);
             HomePage.Name = "HomePage";
-            HomePage.Padding = new Padding(3);
-            HomePage.Size = new Size(1364, 588);
-            HomePage.TabIndex = 0;
-            HomePage.Text = "主页";
             // 
             // tWritePage
             // 
-            tWritePage.AutoScroll = true;
-            tWritePage.Location = new Point(4, 33);
+            resources.ApplyResources(tWritePage, "tWritePage");
             tWritePage.Name = "tWritePage";
-            tWritePage.Padding = new Padding(3);
-            tWritePage.Size = new Size(1364, 588);
-            tWritePage.TabIndex = 1;
-            tWritePage.Text = "笔记";
             tWritePage.UseVisualStyleBackColor = true;
             // 
             // tNoticePage
             // 
-            tNoticePage.Location = new Point(4, 33);
+            resources.ApplyResources(tNoticePage, "tNoticePage");
             tNoticePage.Name = "tNoticePage";
-            tNoticePage.Padding = new Padding(3);
-            tNoticePage.Size = new Size(1364, 588);
-            tNoticePage.TabIndex = 2;
-            tNoticePage.Text = "提醒";
             tNoticePage.UseVisualStyleBackColor = true;
             // 
             // settingPage
             // 
+            resources.ApplyResources(settingPage, "settingPage");
             settingPage.Controls.Add(tableLayoutPanel1);
-            settingPage.Location = new Point(4, 33);
             settingPage.Name = "settingPage";
-            settingPage.Padding = new Padding(3);
-            settingPage.Size = new Size(1364, 588);
-            settingPage.TabIndex = 3;
-            settingPage.Text = "设置";
             settingPage.UseVisualStyleBackColor = true;
             // 
             // tableLayoutPanel1
             // 
-            tableLayoutPanel1.ColumnCount = 2;
-            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 13.1811485F));
-            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 86.81885F));
+            resources.ApplyResources(tableLayoutPanel1, "tableLayoutPanel1");
             tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 1, 0);
             tableLayoutPanel1.Controls.Add(uiListBox1, 0, 0);
-            tableLayoutPanel1.Dock = DockStyle.Fill;
-            tableLayoutPanel1.Location = new Point(3, 3);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
-            tableLayoutPanel1.RowCount = 1;
-            tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            tableLayoutPanel1.Size = new Size(1358, 582);
-            tableLayoutPanel1.TabIndex = 1;
             // 
             // tableLayoutPanel2
             // 
-            tableLayoutPanel2.ColumnCount = 2;
-            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 71.8670044F));
-            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28.1329918F));
+            resources.ApplyResources(tableLayoutPanel2, "tableLayoutPanel2");
             tableLayoutPanel2.Controls.Add(pwdNPBox, 0, 2);
             tableLayoutPanel2.Controls.Add(welcomePWD, 0, 0);
             tableLayoutPanel2.Controls.Add(pwdOPBox, 0, 1);
             tableLayoutPanel2.Controls.Add(changePwdButton, 0, 3);
             tableLayoutPanel2.Controls.Add(isSoundNoticeButton, 1, 0);
-            tableLayoutPanel2.Dock = DockStyle.Fill;
-            tableLayoutPanel2.Location = new Point(182, 3);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
-            tableLayoutPanel2.RowCount = 5;
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 45.9459457F));
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Percent, 54.0540543F));
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 136F));
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 122F));
-            tableLayoutPanel2.RowStyles.Add(new RowStyle(SizeType.Absolute, 95F));
-            tableLayoutPanel2.Size = new Size(1173, 576);
-            tableLayoutPanel2.TabIndex = 1;
             // 
             // pwdNPBox
             // 
+            resources.ApplyResources(pwdNPBox, "pwdNPBox");
             pwdNPBox.BorderStyle = BorderStyle.FixedSingle;
-            pwdNPBox.Dock = DockStyle.Fill;
-            pwdNPBox.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            pwdNPBox.Location = new Point(4, 227);
-            pwdNPBox.Margin = new Padding(4, 5, 4, 5);
-            pwdNPBox.MaxLength = 50;
-            pwdNPBox.MinimumSize = new Size(1, 16);
             pwdNPBox.Name = "pwdNPBox";
-            pwdNPBox.PasswordChar = '*';
-            pwdNPBox.Size = new Size(835, 35);
-            pwdNPBox.TabIndex = 3;
             // 
             // welcomePWD
             // 
-            welcomePWD.AutoSize = true;
-            welcomePWD.Dock = DockStyle.Fill;
-            welcomePWD.Font = new Font("Microsoft YaHei UI", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            welcomePWD.Location = new Point(3, 0);
+            resources.ApplyResources(welcomePWD, "welcomePWD");
             welcomePWD.Name = "welcomePWD";
-            welcomePWD.Size = new Size(837, 102);
-            welcomePWD.TabIndex = 0;
-            welcomePWD.Text = "欢迎来到加密设置界面\r\n重要保密数据请用你信任的软件存储\r\n若要更改加密密码，请在下方操作\r\n\r\n";
             // 
             // pwdOPBox
             // 
+            resources.ApplyResources(pwdOPBox, "pwdOPBox");
             pwdOPBox.BorderStyle = BorderStyle.FixedSingle;
-            pwdOPBox.Dock = DockStyle.Fill;
-            pwdOPBox.Font = new Font("宋体", 12F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            pwdOPBox.Location = new Point(4, 107);
-            pwdOPBox.Margin = new Padding(4, 5, 4, 5);
-            pwdOPBox.MaxLength = 50;
-            pwdOPBox.MinimumSize = new Size(1, 16);
             pwdOPBox.Name = "pwdOPBox";
-            pwdOPBox.PasswordChar = '*';
-            pwdOPBox.Size = new Size(835, 35);
-            pwdOPBox.TabIndex = 2;
             // 
             // changePwdButton
             // 
-            changePwdButton.Dock = DockStyle.Fill;
-            changePwdButton.Location = new Point(3, 361);
+            resources.ApplyResources(changePwdButton, "changePwdButton");
             changePwdButton.Name = "changePwdButton";
-            changePwdButton.Size = new Size(837, 116);
-            changePwdButton.TabIndex = 4;
-            changePwdButton.Text = "确认更改密码";
             changePwdButton.UseVisualStyleBackColor = true;
             changePwdButton.Click += changePwdButton_Click;
             // 
             // isSoundNoticeButton
             // 
-            isSoundNoticeButton.Dock = DockStyle.Fill;
-            isSoundNoticeButton.Font = new Font("Microsoft YaHei UI", 18F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            isSoundNoticeButton.Location = new Point(846, 3);
+            resources.ApplyResources(isSoundNoticeButton, "isSoundNoticeButton");
             isSoundNoticeButton.Name = "isSoundNoticeButton";
-            isSoundNoticeButton.Size = new Size(324, 96);
-            isSoundNoticeButton.TabIndex = 5;
-            isSoundNoticeButton.Text = "提醒声音-未知";
             isSoundNoticeButton.UseVisualStyleBackColor = true;
             isSoundNoticeButton.Click += isSoundNoticeButton_Click;
             // 
             // uiListBox1
             // 
-            uiListBox1.Dock = DockStyle.Fill;
+            resources.ApplyResources(uiListBox1, "uiListBox1");
             uiListBox1.FormattingEnabled = true;
-            uiListBox1.Items.AddRange(new object[] { "加密", "提醒", "开发者选项" });
-            uiListBox1.Location = new Point(3, 3);
+            uiListBox1.Items.AddRange(new object[] { resources.GetString("uiListBox1.Items"), resources.GetString("uiListBox1.Items1"), resources.GetString("uiListBox1.Items2") });
             uiListBox1.Name = "uiListBox1";
-            uiListBox1.Size = new Size(173, 576);
-            uiListBox1.TabIndex = 2;
             uiListBox1.Click += uiListBox1_Click;
             // 
             // topPanel
             // 
-            topPanel.ColumnCount = 3;
-            topPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 14.2921171F));
-            topPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42.5400734F));
-            topPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 43.21825F));
+            resources.ApplyResources(topPanel, "topPanel");
             topPanel.Controls.Add(logoBox, 0, 0);
             topPanel.Controls.Add(label1, 1, 0);
             topPanel.Controls.Add(operationPanel, 2, 0);
-            topPanel.Dock = DockStyle.Fill;
-            topPanel.Location = new Point(3, 3);
             topPanel.Name = "topPanel";
-            topPanel.RowCount = 1;
-            topPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            topPanel.Size = new Size(1372, 151);
-            topPanel.TabIndex = 1;
             // 
             // logoBox
             // 
-            logoBox.Dock = DockStyle.Fill;
+            resources.ApplyResources(logoBox, "logoBox");
             logoBox.Image = Properties.Resources.logo;
-            logoBox.Location = new Point(3, 3);
             logoBox.Name = "logoBox";
-            logoBox.Size = new Size(189, 145);
-            logoBox.SizeMode = PictureBoxSizeMode.Zoom;
-            logoBox.TabIndex = 0;
             logoBox.TabStop = false;
             logoBox.DoubleClick += logoBox_DoubleClick;
             // 
             // label1
             // 
-            label1.AutoSize = true;
-            label1.Dock = DockStyle.Fill;
-            label1.Font = new Font("Microsoft YaHei UI", 48F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            label1.Location = new Point(198, 0);
+            resources.ApplyResources(label1, "label1");
             label1.Name = "label1";
-            label1.Size = new Size(577, 151);
-            label1.TabIndex = 1;
-            label1.Text = "橘子记事本";
             // 
             // operationPanel
             // 
-            operationPanel.ColumnCount = 4;
-            operationPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48.1203F));
-            operationPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 51.8797F));
-            operationPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 143F));
-            operationPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 133F));
+            resources.ApplyResources(operationPanel, "operationPanel");
             operationPanel.Controls.Add(oprationBox1, 0, 0);
             operationPanel.Controls.Add(oprationBox2, 1, 0);
             operationPanel.Controls.Add(oprationBox4, 3, 0);
             operationPanel.Controls.Add(oprationBox3, 2, 0);
-            operationPanel.Dock = DockStyle.Fill;
-            operationPanel.Location = new Point(781, 3);
             operationPanel.Name = "operationPanel";
-            operationPanel.RowCount = 1;
-            operationPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            operationPanel.Size = new Size(588, 145);
-            operationPanel.TabIndex = 2;
             // 
             // oprationBox1
             // 
-            oprationBox1.Dock = DockStyle.Fill;
+            resources.ApplyResources(oprationBox1, "oprationBox1");
             oprationBox1.Image = Properties.Resources.CreateNotes_icon;
-            oprationBox1.Location = new Point(3, 3);
             oprationBox1.Name = "oprationBox1";
-            oprationBox1.Size = new Size(144, 139);
-            oprationBox1.SizeMode = PictureBoxSizeMode.Zoom;
-            oprationBox1.TabIndex = 0;
             oprationBox1.TabStop = false;
             oprationBox1.Click += oprationBox1_Click;
             oprationBox1.MouseEnter += oprationBox1_MouseEnter;
@@ -322,13 +206,9 @@
             // 
             // oprationBox2
             // 
-            oprationBox2.Dock = DockStyle.Fill;
+            resources.ApplyResources(oprationBox2, "oprationBox2");
             oprationBox2.Image = Properties.Resources.DeleteNotes_icon;
-            oprationBox2.Location = new Point(153, 3);
             oprationBox2.Name = "oprationBox2";
-            oprationBox2.Size = new Size(155, 139);
-            oprationBox2.SizeMode = PictureBoxSizeMode.Zoom;
-            oprationBox2.TabIndex = 1;
             oprationBox2.TabStop = false;
             oprationBox2.Click += oprationBox2_Click;
             oprationBox2.MouseEnter += oprationBox2_MouseEnter;
@@ -336,32 +216,24 @@
             // 
             // oprationBox4
             // 
-            oprationBox4.Location = new Point(457, 3);
+            resources.ApplyResources(oprationBox4, "oprationBox4");
             oprationBox4.Name = "oprationBox4";
-            oprationBox4.Size = new Size(128, 139);
-            oprationBox4.TabIndex = 3;
             oprationBox4.TabStop = false;
             // 
             // oprationBox3
             // 
+            resources.ApplyResources(oprationBox3, "oprationBox3");
             oprationBox3.Image = Properties.Resources.search_replace;
-            oprationBox3.Location = new Point(314, 3);
             oprationBox3.Name = "oprationBox3";
-            oprationBox3.Size = new Size(137, 139);
-            oprationBox3.SizeMode = PictureBoxSizeMode.Zoom;
-            oprationBox3.TabIndex = 2;
             oprationBox3.TabStop = false;
             oprationBox3.Click += oprationBox3_Click;
             // 
             // MainForm
             // 
-            AutoScaleDimensions = new SizeF(11F, 24F);
+            resources.ApplyResources(this, "$this");
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1378, 788);
             Controls.Add(mainPanel);
-            Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "MainForm";
-            Text = "橘子记事本";
             Load += Form1_Load;
             SizeChanged += Form1_SizeChanged;
             mainPanel.ResumeLayout(false);
